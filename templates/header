@@ -2,6 +2,19 @@
     <head>
     <title> Kirin </title>
     <link type="text/css" href="/static/kirin.css" rel="stylesheet" />
+    <link type="text/css" href="http://jqueryui.com/latest/themes/base/ui.all.css" rel="stylesheet" />
+    <script type="text/javascript" src="http://jqueryui.com/latest/jquery-1.3.2.js"></script>
+      [% FOR thing = [ "core", "tabs", "accordion", "dialog" ] %]
+      <script type="text/javascript" src="http://jqueryui.com/latest/ui/ui.[%thing%].js"></script>
+      [% END %]
     </head>
 <body>
-
+<div id="header">
+    <img src="/static/kirin.png" id="kirinpng">
+    <h1> Kirin </h1>
+    <p> Domain management software </p>
+</div>
+<div id="panel"><ul>
+    [% FOR i = kirin.plugins; USE k = Class(i);  %] <li><a href="/[%k.name%]">[%k.user_name%]</a> [% END %]
+</ul></div>
+<div id="main">

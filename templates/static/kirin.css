@@ -1,0 +1,14 @@
+html { background: #444;  font-family: sans-serif; }
+#kirinpng { height: 80px; float:left; }
+#header { 
+    background: #222; width: 90%; margin: auto; text-align:right; color: #FFF;
+    padding: 5px 20px 5px 20px;
+    }
+#panel { width: 90%; margin: auto; background: #fdd;  padding: 3px 20px 3px 20px; }
+#panel ul { padding: 0; margin: 0; text-align: center }
+#panel ul li { display: inline }
+a { color: #222; text-decoration: none; font-family:sans-serif; }
+#main { width: 90%; margin: auto; background: #fff;  padding: 5px 20px 5px 20px; }
+
+#loginform { margin: auto; text-align: center; background: #ddd;
+padding: 5px; max-width: 250px}
