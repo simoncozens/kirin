@@ -9,11 +9,23 @@ use warnings;
 my %map = map { $_->name => $_ } Kirin->plugins();
 sub import {
     my $self = shift;
-    my $mw = HTTP::Engine::Middleware->new;
     my %args = @_;
+    my $mw = HTTP::Engine::Middleware->new( { method_class => 'HTTP::Engine::Request' });
     $mw->install( 'HTTP::Engine::Middleware::Static' => {
         regexp  => qr{^/static/(.+)$},
         docroot => $args{template_path}
+    });
+    $mw->install( 'HTTP::Engine::Middleware::HTTPSession' => {
+        state => {
+            class => 'URI',
+            args  => {
+                session_id_name => 'foo_sid',
+            },
+        },
+        store => {
+            class => 'Test',
+            args => { },
+        },
     });
     my $t = Template->new({
         INCLUDE_PATH => $args{template_path},
@@ -34,14 +46,20 @@ sub import {
 sub handle_request {
     my $req = shift;
     my $t = shift;
-    my ($action) = split /\//,  $req->path;
-    if (exists $map{$action}) { return $map{$action}->handle($req) }
+    my $page;
     my $res = HTTP::Engine::Response->new;
     my $out;
-    $t->process("handlers/404", { req => $req }, \$out) ?
+    my ($action) = split /\//,  $req->path;
+    if (exists $map{$action}) { return $map{$action}->handle($req) }
+    if (!$req->session->get("valid")) {
+        $page = "login";
+    } elsif (!$action) { 
+        $page = "frontpage";
+    } else { $page = "handlers/404" }
+    $t->process($page, { req => $req }, \$out) ?
         $res->body($out)
     : $res->body($t->error);
-    $res->status(404); return $res;
+    return $res;
 }
 
 1;
