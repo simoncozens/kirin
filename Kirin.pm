@@ -21,6 +21,7 @@ sub import {
         require => 1,
         relationships => 1,
     );
+    set_up_db();
     $mw->install( 'HTTP::Engine::Middleware::Static' => {
         regexp  => qr{^/static/(.+)$},
         docroot => $args{template_path}
@@ -48,9 +49,18 @@ sub import {
         interface => {
             module => $args{interface},
             args   => { %args },
-            request_handler => $mw->handler(sub {handle_request(@_,$t)}),
+            request_handler => $mw->handler(sub {$_[0]->{template}=$t;handle_request(@_)}),
         },
     )->run;
+}
+
+sub set_up_db {
+    Kirin::DB::Admin->has_a(customer => "Kirin::DB::Customer");
+    Kirin::DB::Admin->has_a(user => "Kirin::DB::User");
+    Kirin::DB::User->has_many(customers => ["Kirin::DB::Admin" => "customer" ]);
+    Kirin::DB::Customer->has_many(users => ["Kirin::DB::Domain" => "user"]);
+    Kirin::DB::Domain->has_a(customer => "Kirin::DB::Customer");
+    Kirin::DB::Customer->has_many(domains => "Kirin::DB::Domain");
 }
 
 sub new { bless {}, shift } # For templates
@@ -73,23 +83,25 @@ sub try_to_login {
 
 sub handle_request {
     my $req = shift;
-    my $t = shift;
     my $page;
     my $res = HTTP::Engine::Response->new;
     my $out;
-    my (undef, $action) = split /\//,  $req->path;
+    my (undef, $action, @args) = split /\//,  $req->path;
     if (!$req->session->get("user") and !try_to_login($req)) {
         $page = "login";
     } elsif (exists $map{$action}) { 
-        return $map{$action}->handle($req);
+        if (!$args[0]) {
+            return $map{$action}->target->list($req,$action);
+        }
+        return $map{$action}->handle($req, @args);
     } elsif (!$action) { 
         $page = "frontpage";
     } else { 
         $page = "handlers/404" 
     }
-    $t->process($page, { req => $req, kirin => Kirin->new }, \$out) ?
+    $req->{template}->process($page, { req => $req, kirin => Kirin->new }, \$out) ?
         $res->body($out)
-    : $res->body($t->error);
+    : $res->body($req->{template}->error);
     return $res;
 }
 

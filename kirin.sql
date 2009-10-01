@@ -1,7 +1,7 @@
 CREATE TABLE user ( id integer primary key not null, username, password);
 CREATE TABLE acl ( id integer primary key not null, user integer, domain, action, yesno integer );
 CREATE TABLE customer ( id integer primary key not null, name, address ); 
-CREATE TABLE domain ( id integer primary key not null, customer, domainname );
+CREATE TABLE domain ( id integer primary key not null, customer integer, domainname );
 CREATE TABLE admin ( id integer primary key not null, user integer, customer integer);
 
 /* Some dummy data */
