@@ -2,10 +2,10 @@
     <head>
     <title> Kirin </title>
     <link type="text/css" href="/static/kirin.css" rel="stylesheet" />
-    <link type="text/css" href="http://jqueryui.com/latest/themes/base/ui.all.css" rel="stylesheet" />
-    <script type="text/javascript" src="http://jqueryui.com/latest/jquery-1.3.2.js"></script>
+   <!-- <link type="text/css" href="http://jqueryui.com/latest/themes/base/ui.all.css" rel="stylesheet" /> -->
+    <!-- <script type="text/javascript" src="http://jqueryui.com/latest/jquery-1.3.2.js"></script> -->
       [% FOR thing = [ "core", "tabs", "accordion", "dialog" ] %]
-      <script type="text/javascript" src="http://jqueryui.com/latest/ui/ui.[%thing%].js"></script>
+      <!-- <script type="text/javascript" src="http://jqueryui.com/latest/ui/ui.[%thing%].js"></script> -->
       [% END %]
     </head>
 <body>
