@@ -1,4 +1,5 @@
 package Kirin;
+use List::Util qw/max/;
 use Template;
 use HTTP::Engine;
 use HTTP::Engine::Middleware;
@@ -63,8 +64,7 @@ sub try_to_login {
     return unless $user;
     my $real = Authen::Passphrase->from_crypt($user->password);
     if ($real->match($p)) {
-        $req->session->set("valid" => 1);
-        $req->session->set("user" => $u);
+        $req->session->set("user" => $user);
         return 1;
     }
 
@@ -77,17 +77,40 @@ sub handle_request {
     my $page;
     my $res = HTTP::Engine::Response->new;
     my $out;
-    my ($action) = split /\//,  $req->path;
-    if (exists $map{$action}) { return $map{$action}->handle($req) }
-    if (!$req->session->get("valid") and !try_to_login($req)) {
+    my (undef, $action) = split /\//,  $req->path;
+    if (!$req->session->get("user") and !try_to_login($req)) {
         $page = "login";
+    } elsif (exists $map{$action}) { 
+        return $map{$action}->handle($req);
     } elsif (!$action) { 
         $page = "frontpage";
-    } else { $page = "handlers/404" }
+    } else { 
+        $page = "handlers/404" 
+    }
     $t->process($page, { req => $req, kirin => Kirin->new }, \$out) ?
         $res->body($out)
     : $res->body($t->error);
     return $res;
+}
+
+sub can_do { # Our simple ACL processor
+    my ($self, $req, $action, $domain) = @_;
+    my $user;
+    if (!($user = $req->session->get("user"))) { return 0 }
+    my $acl;
+    if (($acl) = Kirin::DB::Acl->search(user => $user->id, domain => "*", action => "*", yesno => 1)) { return 1 }
+
+    if (!$action) { # Just see if we can see this domain at all
+       return max map { $_->yesno }  Kirin::DB::Acl->search(user => $user, domain => $domain);
+    } 
+    if (!$domain) { 
+       return max map { $_->yesno }  Kirin::DB::Acl->search(user => $user, action => $action);
+    } 
+    if (($acl) = Kirin::DB::Acl->search(user => $user, domain => $domain, action => $action)) { return $acl->yesno; }
+    if (($acl) = Kirin::DB::Acl->search(user => $user, domain => "*", action => $action)) { return $acl->yesno; }
+    if (($acl) = Kirin::DB::Acl->search(user => $user, domain => $domain, action => "*")) { return $acl->yesno; }
+    if (($acl) = Kirin::DB::Acl->search(user => $user, domain => "*", action => "*")) { return $acl->yesno; }
+    return 0;
 }
 
 1;
