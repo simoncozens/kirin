@@ -1,13 +1,15 @@
 <table>
-[% FOR a = alias %]
+[% SET acount = 0;  FOR a = alias; SET acount = acount+1 %]
     <tr>
     [% IF a.0 == "comment"; %] <td colspan="2"><i> [%a.1;%]</i>
     [% ELSE;%] 
-         <td valign="top"><input name="x" value="[% a.1 %]"></td>
-            <td><table style="border:1px solid black">
-         [% FOR expansion = a.2 %]
-            <tr><td><input class="autocomplete" name="y" value="[%expansion|html%]"></td><td>-</td>
-            [% IF expansion == a.2.last %]<td>+</td>[% END %]
+         <td valign="top"><input name="[%acount%]l" value="[% a.1 %]"></td>
+            <td><table style="border:1px solid black" id="[%acount%]table">
+         [% SET ecount = 0; FOR expansion = a.2; SET ecount = ecount +1 %]
+            <tr><td><input class="autocomplete" name="[%acount%]r[%ecount%]"
+            value="[%expansion|html%]"></td>
+            [% IF expansion != a.2.first %]<td class="minus">-</td>[% END %]
+            [% IF expansion == a.2.last %]<td class="rhsplus">+</td>[% END %]
             </tr>
          [% END %]
             </table></td>
@@ -19,7 +21,42 @@
 var localparts = [
 [% FOR a = alias; NEXT IF a.0 == "comment" %] "[%a.1%]\@[%domain.domainname%]", [% END %]
 ""];
-  $(document).ready(function(){
+
+var doMinus = function() { 
+        if (!$(this).parent().nextAll().length) {
+            if ($(this.parentNode).prev().length) {
+                $(this.parentNode).prev().append('<td class="rhsplus">+</td>').click(doPlus);
+                fixActions();
+            } else {
+                return;
+            }
+        }
+        $(this).parent().slideUp("slow", function () { 
+            $(this).remove();
+        });
+}
+
+var doPlus = function () {
+        if (!this.parentNode.firstChild.firstChild.value) {
+            this.parentNode.firstChild.firstChild.focus();
+            return; // Hey, use the one you've got.
+        }
+        // Gen up a new name for it
+        var name = this.parentNode.firstChild.firstChild.name;
+        var old = parseInt((name.match(/\d+$/))[0]);
+        name = name.replace(/\d+$/,old+1);
+
+        $(this).parent().parent().append('<tr><td><input class="autocomplete" name="'+name+'"></td><td class="minus">-</td><td class="rhsplus">+</td>');
+        fixActions();
+        $(this).remove();
+}
+
+  function fixActions () {
       $(".autocomplete").autocomplete(localparts);
+      $(".minus").click(doMinus);
+      $(".rhsplus").click(doPlus);
+  }
+  $(document).ready(function(){
+      fixActions();
     });
 </script>
