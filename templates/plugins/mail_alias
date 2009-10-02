@@ -1,0 +1,17 @@
+<table>
+[% FOR a = alias %]
+    <tr>
+    [% IF a.0 == "comment"; %] <td colspan="2"><i> [%a.1;%]</i>
+    [% ELSE;%] 
+         <td valign="top"><input name="x" value="[% a.1 %]"></td>
+            <td><table style="border:1px solid black">
+         [% FOR expansion = a.2 %]
+            <tr><td><input name="y" value="[%expansion%]"></td><td>-</td>
+            [% IF expansion == a.2.last %]<td>+</td>[% END %]
+            </tr>
+         [% END %]
+            </table></td>
+         [% END %]
+    </tr>
+[% END %]
+</table>

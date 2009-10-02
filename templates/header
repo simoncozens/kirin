@@ -15,6 +15,6 @@
     <p> Domain management software </p>
 </div>
 <div id="panel"><ul>
-    [% FOR i = kirin.plugins; USE k = Class(i); IF kirin.can_do(req, k.name) %] <li><a href="/[%k.name%]">[%k.user_name%]</a> [% END; END %]
+    [% FOR i = kirin.plugins; USE k = Class(i); IF req.session.get("user").can_do(k.name) %] <li><a href="/[%k.name%]">[%k.user_name%]</a> [% END; END %]
 </ul></div>
 <div id="main">

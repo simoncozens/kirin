@@ -18,10 +18,10 @@ sub import {
         dsn => $args{dsn},
         namespace => "Kirin::DB",
         options => { AutoCommit => 1 },
-        require => 1,
         relationships => 1,
     );
-    set_up_db();
+    require Kirin::DB;
+    Kirin::DB::set_up_db();
     $mw->install( 'HTTP::Engine::Middleware::Static' => {
         regexp  => qr{^/static/(.+)$},
         docroot => $args{template_path}
@@ -54,15 +54,6 @@ sub import {
     )->run;
 }
 
-sub set_up_db {
-    Kirin::DB::Admin->has_a(customer => "Kirin::DB::Customer");
-    Kirin::DB::Admin->has_a(user => "Kirin::DB::User");
-    Kirin::DB::User->has_many(customers => ["Kirin::DB::Admin" => "customer" ]);
-    Kirin::DB::Customer->has_many(users => ["Kirin::DB::Domain" => "user"]);
-    Kirin::DB::Domain->has_a(customer => "Kirin::DB::Customer");
-    Kirin::DB::Customer->has_many(domains => "Kirin::DB::Domain");
-}
-
 sub new { bless {}, shift } # For templates
 
 sub try_to_login {
@@ -85,7 +76,6 @@ sub handle_request {
     my $req = shift;
     my $page;
     my $res = HTTP::Engine::Response->new;
-    my $out;
     my (undef, $action, @args) = split /\//,  $req->path;
     if (!$req->session->get("user") and !try_to_login($req)) {
         $page = "login";
@@ -99,31 +89,26 @@ sub handle_request {
     } else { 
         $page = "handlers/404" 
     }
-    $req->{template}->process($page, { req => $req, kirin => Kirin->new }, \$out) ?
+    Kirin->respond($req, $action, $page);
+}
+
+sub respond {
+    my ($self, $req, $action, $template, @args) = @_;
+    my $out;
+    my $res = HTTP::Engine::Response->new();
+    $req->{template}->process($template, { 
+        @args,
+        action => $action, 
+        req => $req, 
+        kirin => Kirin->new }, \$out) ?
         $res->body($out)
     : $res->body($req->{template}->error);
     return $res;
 }
 
-sub can_do { # Our simple ACL processor
-    my ($self, $req, $action, $domain) = @_;
-    my $user;
-    if (!($user = $req->session->get("user"))) { return 0 }
-    my $acl;
-    if (($acl) = Kirin::DB::Acl->search(user => $user->id, domain => "*", action => "*", yesno => 1)) { return 1 }
-
-    if (!$action) { # Just see if we can see this domain at all
-       return max map { $_->yesno }  Kirin::DB::Acl->search(user => $user, domain => $domain);
-    } 
-    if (!$domain) { 
-       return max map { $_->yesno }  Kirin::DB::Acl->search(user => $user, action => $action);
-    } 
-    if (($acl) = Kirin::DB::Acl->search(user => $user, domain => $domain, action => $action)) { return $acl->yesno; }
-    if (($acl) = Kirin::DB::Acl->search(user => $user, domain => "*", action => $action)) { return $acl->yesno; }
-    if (($acl) = Kirin::DB::Acl->search(user => $user, domain => $domain, action => "*")) { return $acl->yesno; }
-    if (($acl) = Kirin::DB::Acl->search(user => $user, domain => "*", action => "*")) { return $acl->yesno; }
-    return 0;
+sub its_all_gone_wrong {
+    my $self = shift;
+    my $res = HTTP::Engine::Response->new();
+    $res->body(shift);
+    return $res;
 }
-
-1;
-

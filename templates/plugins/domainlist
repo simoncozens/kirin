@@ -1,0 +1,9 @@
+
+<h2>You can edit the following domains</h2>
+
+<ul>
+[% FOR d = domains %]
+    <li> <a href="/[%action%]/[%d.id%]">[%d.domainname%]</li>
+[% END %]
+    
+</ul>
