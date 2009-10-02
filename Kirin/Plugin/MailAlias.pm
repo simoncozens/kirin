@@ -17,6 +17,7 @@ sub handle {
     }
     Kirin->respond($req, $action, "plugins/mail_alias", 
             alias => [ read_alias($alias_file) ],
+            domain => $domain,
     );
 }
 

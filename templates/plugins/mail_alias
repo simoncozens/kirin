@@ -6,7 +6,7 @@
          <td valign="top"><input name="x" value="[% a.1 %]"></td>
             <td><table style="border:1px solid black">
          [% FOR expansion = a.2 %]
-            <tr><td><input name="y" value="[%expansion%]"></td><td>-</td>
+            <tr><td><input class="autocomplete" name="y" value="[%expansion|html%]"></td><td>-</td>
             [% IF expansion == a.2.last %]<td>+</td>[% END %]
             </tr>
          [% END %]
@@ -15,3 +15,11 @@
     </tr>
 [% END %]
 </table>
+<script>
+var localparts = [
+[% FOR a = alias; NEXT IF a.0 == "comment" %] "[%a.1%]\@[%domain.domainname%]", [% END %]
+""];
+  $(document).ready(function(){
+      $(".autocomplete").autocomplete(localparts);
+    });
+</script>
