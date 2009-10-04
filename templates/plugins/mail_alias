@@ -1,19 +1,22 @@
 <table>
 [% SET acount = 0;  FOR a = alias; SET acount = acount+1 %]
     <tr>
-    [% IF a.0 == "comment"; %] <td colspan="2"><i> [%a.1;%]</i>
+    [% IF a.0 == "comment"; %] <td class="[%acount%]c" colspan="2"><i>[%a.1 |html%]</i></td>
     [% ELSE;%] 
-         <td valign="top"><input name="[%acount%]l" value="[% a.1 %]"></td>
-            <td><table style="border:1px solid black" id="[%acount%]table">
+         <td valign="top"><input class="localpart" name="[%acount%]l" value="[% a.1 %]"></td>
+            <td><table style="border:1px solid black">
          [% SET ecount = 0; FOR expansion = a.2; SET ecount = ecount +1 %]
             <tr><td><input class="autocomplete" name="[%acount%]r[%ecount%]"
             value="[%expansion|html%]"></td>
             [% IF expansion != a.2.first %]<td class="minus">-</td>[% END %]
             [% IF expansion == a.2.last %]<td class="rhsplus">+</td>[% END %]
             </tr>
-         [% END %]
+     [% END %]
             </table></td>
-         [% END %]
+     [% END %]
+    <td class="makecomment">#</td>
+    <td>-</td>
+    <td>+</td>
     </tr>
 [% END %]
 </table>
@@ -51,10 +54,44 @@ var doPlus = function () {
         $(this).remove();
 }
 
+function makeComment() {
+     var toptd = $($(this.parentNode).find("td").get(0));
+     if(toptd.attr("colspan")) {
+        var text = toptd.find("i").text();
+        var matches = text.match(/^#\s*([^:]+):\s*(.*)/);
+        var label = toptd.attr("class").replace(/c$/,"l");
+        var rhs = [];
+        if (matches[2]) { rhs = matches[2].split(/\s*,\s*/); }
+        toptd.remove();
+        $(this.parentNode).prepend('<td><input name="'+label+'"/></td><td><table style="border:1px solid black"></table></td>');
+        $(this.parentNode.firstChild.firstChild).val(matches[1]);
+        var table = this.parentNode.firstChild.nextSibling.firstChild;
+        var label = label.replace(/l$/,"r");
+        $.map(rhs, function(t, i) {
+            var extra = "";
+            if (i != 0) { extra = '<td class="minus">-</td>'; }
+            if (i == rhs.length - 1) { extra = extra + '<td class="rhsplus">+</td>'; }
+            $(table).append('<tr><td><input class="autocomplete" name="'+label+i+'></td>'+extra+'</tr>');
+            table.firstChild.lastChild.firstChild.firstChild.value = t;
+        });
+
+        
+     } else {
+        var text = "# "+ toptd.children().get(0).value + ": " + $.map(toptd.next().children().find("input"),function(a){return a.value}).join(", ");
+        var label = toptd.children().get(0).name.replace(/l$/, "c");
+        $(toptd.children().get(0)).remove();
+        toptd.next().remove();
+        toptd.remove();
+        $(this.parentNode).prepend("<td class=\""+label+"\" colspan=\"2\"><i></i></td>");
+        $(this.parentNode.firstChild.firstChild).text(text);
+     }
+}
   function fixActions () {
+    // recalculate localparts XXX
       $(".autocomplete").autocomplete(localparts);
       $(".minus").click(doMinus);
       $(".rhsplus").click(doPlus);
+      $(".makecomment").click(makeComment);
   }
   $(document).ready(function(){
       fixActions();
