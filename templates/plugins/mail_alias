@@ -71,7 +71,7 @@ function makeComment() {
             var extra = "";
             if (i != 0) { extra = '<td class="minus">-</td>'; }
             if (i == rhs.length - 1) { extra = extra + '<td class="rhsplus">+</td>'; }
-            $(table).append('<tr><td><input class="autocomplete" name="'+label+i+'></td>'+extra+'</tr>');
+            $(table).append('<tr><td><input class="autocomplete" name="'+label+i+'"></td>'+extra+'</tr>');
             table.firstChild.lastChild.firstChild.firstChild.value = t;
         });
 
@@ -85,6 +85,7 @@ function makeComment() {
         $(this.parentNode).prepend("<td class=\""+label+"\" colspan=\"2\"><i></i></td>");
         $(this.parentNode.firstChild.firstChild).text(text);
      }
+     fixActions();
 }
   function fixActions () {
     // recalculate localparts XXX
