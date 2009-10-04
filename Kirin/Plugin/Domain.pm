@@ -12,7 +12,7 @@ sub handle {
 sub list {
     my ($self, $req, $action) = @_;
     Kirin->respond($req, $action, "plugins/domainlist", 
-            domains => [ $req->session->get("user")->my_domains($action) ]
+            domains => [ $req->{user}->my_domains($action) ]
     );
 }
 

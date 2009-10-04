@@ -8,7 +8,7 @@ sub handle {
     my ($self, $req, @args) = @_;
     my $domain = Kirin::DB::Domain->retrieve($args[0]);
     # Should recheck ACL here
-    if (!$domain or !$req->session->get("user")->can_do("mail_alias", $domain->domainname)) {
+    if (!$domain or !$req->{user}->can_do("mail_alias", $domain->domainname)) {
         return Kirin->its_all_gone_wrong("Tried to get around the ACL. Naughty!");
     }
     my $alias_file = "/etc/exim4/virtual/".$domain->domainname;

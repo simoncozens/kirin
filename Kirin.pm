@@ -77,7 +77,8 @@ sub handle_request {
     my $page;
     my $res = HTTP::Engine::Response->new;
     my (undef, $action, @args) = split /\//,  $req->path;
-    if (!$req->session->get("user") and !try_to_login($req)) {
+    $req->{user} = $req->session->get("user");
+    if (!$req->{user} and !try_to_login($req)) {
         $page = "login";
     } elsif (exists $map{$action}) { 
         if (!$args[0]) {
