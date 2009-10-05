@@ -3,11 +3,11 @@
     <title> Kirin </title>
     <link type="text/css" href="/static/kirin.css" rel="stylesheet" />
     <link type="text/css" href="/static/jquery.autocomplete.css" rel="stylesheet" />
-   <!-- <link type="text/css" href="http://jqueryui.com/latest/themes/base/ui.all.css" rel="stylesheet" /> -->
+    <link type="text/css" href="http://jqueryui.com/latest/themes/base/ui.all.css" rel="stylesheet" /> 
     <script type="text/javascript" src="/static/jquery.min.js"></script>
     <script type="text/javascript" src="/static/jquery.autocomplete.js"></script>
-      [% FOR thing = [ "core", "tabs", "accordion", "dialog" ] %]
-      <!-- <script type="text/javascript" src="http://jqueryui.com/latest/ui/ui.[%thing%].js"></script> -->
+      [% FOR thing = [ "core", "dialog" ] %]
+      <script type="text/javascript" src="http://jqueryui.com/latest/ui/ui.[%thing%].js"></script> 
       [% END %]
     </head>
 <body>
@@ -17,6 +17,6 @@
     <p> Domain management software </p>
 </div>
 <div id="panel"><ul>
-    [% FOR i = kirin.plugins; USE k = Class(i); IF req.session.get("user").can_do(k.name) %] <li><a href="/[%k.name%]">[%k.user_name%]</a> [% END; END %]
+    [% FOR i = kirin.plugins; USE k = Class(i); IF req.user.can_do(k.name) %] <li><a href="/[%k.name%]">[%k.user_name%]</a> [% END; END %]
 </ul></div>
 <div id="main">

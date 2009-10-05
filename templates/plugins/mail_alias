@@ -1,7 +1,7 @@
 <table>
 [% SET acount = 0;  FOR a = alias; SET acount = acount+1 %]
     <tr>
-    [% IF a.0 == "comment"; %] <td class="[%acount%]c" colspan="2"><i>[%a.1 |html%]</i></td>
+    [% IF a.0 == "comment"; %] <td class="[%acount%]c comment" colspan="2"><i>[%a.1 |html%]</i></td>
     [% ELSE;%] 
          <td valign="top"><input class="localpart" name="[%acount%]l" value="[% a.1 %]"></td>
             <td><table style="border:1px solid black">
@@ -15,11 +15,17 @@
             </table></td>
      [% END %]
     <td class="makecomment">#</td>
-    <td>-</td>
+    <td class="removeline">-</td>
     <td>+</td>
     </tr>
 [% END %]
 </table>
+<div id="dialog" title="Really remove this line?">
+    <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0
+    7px 20px 0;"></span>There's no undo, so if you make a mistake you
+    won't get it back. If you're unsure, so "No" and just comment it out
+    for now.</p>
+</div>
 <script>
 var localparts = [
 [% FOR a = alias; NEXT IF a.0 == "comment" %] "[%a.1%]\@[%domain.domainname%]", [% END %]
@@ -59,7 +65,7 @@ function makeComment() {
      if(toptd.attr("colspan")) {
         var text = toptd.find("i").text();
         var matches = text.match(/^#\s*([^:]+):\s*(.*)/);
-        var label = toptd.attr("class").replace(/c$/,"l");
+        var label = toptd.attr("class").replace(/c.*$/,"l");
         var rhs = [];
         if (matches[2]) { rhs = matches[2].split(/\s*,\s*/); }
         toptd.remove();
@@ -82,17 +88,52 @@ function makeComment() {
         $(toptd.children().get(0)).remove();
         toptd.next().remove();
         toptd.remove();
-        $(this.parentNode).prepend("<td class=\""+label+"\" colspan=\"2\"><i></i></td>");
+        $(this.parentNode).prepend("<td class=\""+label+" comment\" colspan=\"2\"><i></i></td>");
         $(this.parentNode.firstChild.firstChild).text(text);
      }
      fixActions();
 }
+
+function removeLine() {
+        var tokill = this.parentNode;   
+        $("#dialog").dialog("option","buttons", {
+                'Yes': function() {
+                    $(this).dialog('close');
+                    $(tokill).remove();
+                },
+                No: function() {
+                    $(this).dialog('close');
+                }
+        }).dialog("open");
+}
+
+$("#dialog").dialog({
+    bgiframe: true,
+    autoOpen: false,
+    resizable: false,
+    height: 290,
+    modal: true,
+    overlay: {
+        backgroundColor: '#000',
+        opacity: 0.5
+    },
+    buttons: {
+        'Yes': function() {
+            $(this).dialog('close');
+        },
+        No: function() {
+            $(this).dialog('close');
+        }
+    }
+});
+
   function fixActions () {
     // recalculate localparts XXX
       $(".autocomplete").autocomplete(localparts);
       $(".minus").click(doMinus);
       $(".rhsplus").click(doPlus);
       $(".makecomment").click(makeComment);
+      $(".removeline").click(removeLine);
   }
   $(document).ready(function(){
       fixActions();
