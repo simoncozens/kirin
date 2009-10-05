@@ -60,15 +60,24 @@ sub try_to_login {
     my $req = shift;
     my $params = $req->parameters;
     my ($p, $u);
-    return unless $u = $params->{username} and $p = $params->{password};
+    unless($u = $params->{username} and $p = $params->{password}) {
+        push @{$req->{messages}}, "Need to give a username and a password to log in";
+        return;
+    }
     my ($user) = Kirin::DB::User->search(username => $u);
-    return unless $user;
+    if (!$user) {
+        # Don't leak more information than necessary
+        push @{$req->{messages}}, "Username or password incorrect";
+        return;
+    }
     my $real = Authen::Passphrase->from_crypt($user->password);
     if ($real->match($p)) {
+        push @{$req->{messages}}, "Login successful";
         $req->session->set("user" => $user);
         return 1;
     }
 
+    push @{$req->{messages}}, "Username or password incorrect";
     return 0;
 }
 
@@ -78,6 +87,7 @@ sub handle_request {
     my $res = HTTP::Engine::Response->new;
     my (undef, $action, @args) = split /\//,  $req->path;
     $req->{user} = $req->session->get("user");
+    $req->{messages} = [];
     if (!$req->{user} and !try_to_login($req)) {
         $page = "login";
     } elsif (exists $map{$action}) { 

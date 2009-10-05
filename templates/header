@@ -20,3 +20,10 @@
     [% FOR i = kirin.plugins; USE k = Class(i); IF req.user.can_do(k.name) %] <li><a href="/[%k.name%]">[%k.user_name%]</a> [% END; END %]
 </ul></div>
 <div id="main">
+    [% IF req.messages.size %]
+    <ul class="messages">
+        [% FOR m = req.messages %]
+            <li> [%m|html%]</li>
+        [% END %]
+    </ul>
+    [% END %]

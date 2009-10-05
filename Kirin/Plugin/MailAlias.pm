@@ -12,6 +12,13 @@ sub handle {
         return Kirin->its_all_gone_wrong("Tried to get around the ACL. Naughty!");
     }
     my $alias_file = "/etc/exim4/virtual/".$domain->domainname;
+    if ($req->parameters()->{"thefile"}){ # We have an upload
+        open my $alias, ">", $alias_file or 
+            return Kirin->its_all_gone_wrong("Couldn't write on alias file\n");
+        print $alias $req->parameters()->{"thefile"};
+        close $alias;
+        push @{$req->{messages}}, "Alias file saved successfully";
+    }
     if (!-r $alias_file) {
         return Kirin->its_all_gone_wrong("Couldn't find alias file\n");
     }

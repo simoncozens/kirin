@@ -1,13 +1,12 @@
-<table>
-[% SET acount = 0;  FOR a = alias; SET acount = acount+1 %]
+<table id="aliasfile">
+[% SET acount = 0; FOR a = alias; %]
     <tr>
-    [% IF a.0 == "comment"; %] <td class="[%acount%]c comment" colspan="2"><i>[%a.1 |html%]</i></td>
+    [% IF a.0 == "comment"; %] <td class="comment" colspan="2"><i>[%a.1 |html%]</i></td>
     [% ELSE;%] 
-         <td valign="top"><input class="localpart" name="[%acount%]l" value="[% a.1 %]"></td>
+         <td><input class="localpart" value="[% a.1 %]"></td>
             <td><table style="border:1px solid black">
-         [% SET ecount = 0; FOR expansion = a.2; SET ecount = ecount +1 %]
-            <tr><td><input class="autocomplete" name="[%acount%]r[%ecount%]"
-            value="[%expansion|html%]"></td>
+         [% SET ecount = 0; FOR expansion = a.2; %]
+            <tr><td><input class="autocomplete" value="[%expansion|html%]"></td>
             [% IF expansion != a.2.first %]<td class="minus">-</td>[% END %]
             [% IF expansion == a.2.last %]<td class="rhsplus">+</td>[% END %]
             </tr>
@@ -20,6 +19,10 @@
     </tr>
 [% END %]
 </table>
+<form method="post" onsubmit="return rollup()">
+    <input type="submit">
+    <input type="hidden" name="thefile" id="thefile">
+</form>
 <div id="dialog" title="Really remove this line?">
     <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0
     7px 20px 0;"></span>There's no undo, so if you make a mistake you
@@ -27,10 +30,6 @@
     for now.</p>
 </div>
 <script>
-var localparts = [
-[% FOR a = alias; NEXT IF a.0 == "comment" %] "[%a.1%]\@[%domain.domainname%]", [% END %]
-""];
-
 var doMinus = function() { 
         if (!$(this).parent().nextAll().length) {
             if ($(this.parentNode).prev().length) {
@@ -50,45 +49,42 @@ var doPlus = function () {
             this.parentNode.firstChild.firstChild.focus();
             return; // Hey, use the one you've got.
         }
-        // Gen up a new name for it
-        var name = this.parentNode.firstChild.firstChild.name;
-        var old = parseInt((name.match(/\d+$/))[0]);
-        name = name.replace(/\d+$/,old+1);
-
-        $(this).parent().parent().append('<tr><td><input class="autocomplete" name="'+name+'"></td><td class="minus">-</td><td class="rhsplus">+</td>');
+        $(this).parent().parent().append('<tr><td><input class="autocomplete"></td><td class="minus">-</td><td class="rhsplus">+</td>');
         fixActions();
         $(this).remove();
+}
+
+function textfromtd(n) {
+    if(n.attr("colspan")) {
+        return n.find("i").text().replace(/\n$/,"");
+    } 
+    return n.children().get(0).value + ": " +
+    $.map(n.next().children().find("input"),function(a){return a.value}).join(", ").replace(/\n$/,"");
 }
 
 function makeComment() {
      var toptd = $($(this.parentNode).find("td").get(0));
      if(toptd.attr("colspan")) {
-        var text = toptd.find("i").text();
-        var matches = text.match(/^#\s*([^:]+):\s*(.*)/);
-        var label = toptd.attr("class").replace(/c.*$/,"l");
+        var matches = textfromtd(toptd).match(/^#\s*([^:]+):\s*(.*)/);
         var rhs = [];
         if (matches[2]) { rhs = matches[2].split(/\s*,\s*/); }
         toptd.remove();
-        $(this.parentNode).prepend('<td><input name="'+label+'"/></td><td><table style="border:1px solid black"></table></td>');
+        $(this.parentNode).prepend('<td><input/></td><td><table style="border:1px solid black"></table></td>');
         $(this.parentNode.firstChild.firstChild).val(matches[1]);
         var table = this.parentNode.firstChild.nextSibling.firstChild;
-        var label = label.replace(/l$/,"r");
         $.map(rhs, function(t, i) {
             var extra = "";
             if (i != 0) { extra = '<td class="minus">-</td>'; }
             if (i == rhs.length - 1) { extra = extra + '<td class="rhsplus">+</td>'; }
-            $(table).append('<tr><td><input class="autocomplete" name="'+label+i+'"></td>'+extra+'</tr>');
+            $(table).append('<tr><td><input class="autocomplete"/></td>'+extra+'</tr>');
             table.firstChild.lastChild.firstChild.firstChild.value = t;
         });
-
-        
      } else {
-        var text = "# "+ toptd.children().get(0).value + ": " + $.map(toptd.next().children().find("input"),function(a){return a.value}).join(", ");
-        var label = toptd.children().get(0).name.replace(/l$/, "c");
+        var text = "# "+ textfromtd(toptd);
         $(toptd.children().get(0)).remove();
         toptd.next().remove();
         toptd.remove();
-        $(this.parentNode).prepend("<td class=\""+label+" comment\" colspan=\"2\"><i></i></td>");
+        $(this.parentNode).prepend("<td class=\"comment\" colspan=\"2\"><i></i></td>");
         $(this.parentNode.firstChild.firstChild).text(text);
      }
      fixActions();
@@ -97,13 +93,8 @@ function makeComment() {
 function removeLine() {
         var tokill = this.parentNode;   
         $("#dialog").dialog("option","buttons", {
-                'Yes': function() {
-                    $(this).dialog('close');
-                    $(tokill).remove();
-                },
-                No: function() {
-                    $(this).dialog('close');
-                }
+            Yes: function() { $(this).dialog('close'); $(tokill).remove(); },
+            No: function() { $(this).dialog('close'); }
         }).dialog("open");
 }
 
@@ -118,24 +109,28 @@ $("#dialog").dialog({
         opacity: 0.5
     },
     buttons: {
-        'Yes': function() {
-            $(this).dialog('close');
-        },
-        No: function() {
-            $(this).dialog('close');
-        }
+        Yes: function() { $(this).dialog('close'); },
+        No: function() { $(this).dialog('close'); }
     }
 });
 
+function rollup() {
+    // Any sanity checks?
+    $("#thefile").val($("#aliasfile").children().children().find("td:first").map(function(){return textfromtd($(this))}).get().join("\n"));
+    return true;
+}
+
   function fixActions () {
-    // recalculate localparts XXX
+    var localparts = $(".localpart").map(function () {return $(this).val()+'@[%domain.domainname%]'}).get()
       $(".autocomplete").autocomplete(localparts);
       $(".minus").click(doMinus);
       $(".rhsplus").click(doPlus);
       $(".makecomment").click(makeComment);
       $(".removeline").click(removeLine);
+      $(".localpart").blur(fixActions);
   }
   $(document).ready(function(){
       fixActions();
     });
+
 </script>

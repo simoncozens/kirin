@@ -12,3 +12,7 @@ a { color: #222; text-decoration: none; font-family:sans-serif; }
 
 #loginform { margin: auto; text-align: center; background: #ddd;
 padding: 5px; max-width: 250px}
+
+table#aliasfile > tbody > tr:nth-child(even) {background: #ddf}
+table#aliasfile > tbody > tr:nth-child(odd) {background: #eef}
+
