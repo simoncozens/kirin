@@ -1,0 +1,19 @@
+<h2>Editing user</h2>
+
+<a href="/customer/edit/[%user.customer.id%]">Edit your customer details</a>
+
+[% SET c = user.customers; IF c.size > 1 %]
+
+<h3> Edit your customers' details </h3>
+<ul>
+[% FOR customer = c %]
+<li> <a href="/customer/edit/[%customer.id%]">[%customer.forename|html%]
+[%customer.surname|html%]</a></li>
+[% END %]
+</ul>
+[%END %]
+
+<h3>Change your password</h3>
+
+<input type="password" name="p1"><br>
+<input type="password" name="p2"><br>

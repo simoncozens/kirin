@@ -1,0 +1,33 @@
+<h2>Edit customer details</h2>
+
+[% MACRO to_field(x) x.replace(" ", "_") | lower %]
+<form method="post">
+<input type="submit" style="display:none" id="submit">
+<input type="hidden" name="editing" value="1"/>
+<table>
+[% FOR thing = ["Forename", "Surname", "Org", "Address", "Town",
+    "County", "Country", "Postcode", "Phone", "Fax", "Email",
+    "Billing Email", "SMS"];
+SET f = to_field(thing); %]
+<tr>
+    <th> [% thing %] </th>
+    <td class="editable"><span id="[%f%]">[% customer.$f |html %]</span></td>
+</tr>
+[% END %]
+</table>
+</form>
+
+<script>
+  $(".editable").click(makeInput);
+  function makeInput () {
+    if (this.firstChild.tagName == "INPUT") return;
+    var id=this.firstChild.id;
+    var newi = document.createElement("input");
+    newi.value = $(this.firstChild).text();
+    newi.setAttribute("name", id);
+    $(this.firstChild).replaceWith(newi);
+    newi.setAttribute("id", id);
+    $("#submit").show("slow");
+  }
+
+</script>

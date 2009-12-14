@@ -6,13 +6,13 @@ html { background: #444;  font-family: sans-serif; }
     }
 #panel { width: 90%; margin: auto; background: #fdd;  padding: 3px 20px 3px 20px; }
 #panel ul { padding: 0; margin: 0; text-align: center }
-#panel ul li { display: inline }
-a { color: #222; text-decoration: none; font-family:sans-serif; }
+#panel ul li { display: inline; padding:30px }
+a { color: #447; text-decoration: none; font-family:sans-serif; }
 #main { width: 90%; margin: auto; background: #fff;  padding: 5px 20px 5px 20px; }
 
 #loginform { margin: auto; text-align: center; background: #ddd;
 padding: 5px; max-width: 250px}
 
-table#aliasfile > tbody > tr:nth-child(even) {background: #ddf}
-table#aliasfile > tbody > tr:nth-child(odd) {background: #eef}
-
+table > tbody > tr:nth-child(even) {background: #ddf}
+table > tbody > tr:nth-child(odd) {background: #eef}
+.customerselect { float:right; font-size: 80% }

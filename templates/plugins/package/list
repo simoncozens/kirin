@@ -1,0 +1,24 @@
+<h2> Packages available </h2>
+[% FOR p = packages %]
+<h3> [%p.name %] </h3>
+[% SET this_subscription = self.customer.subscriptions("package", p.id).first;
+ IF this_subscription; %]
+    <p>(Expires [%this_subscription.expires%])</p>
+ [% ELSE%]
+<input type="submit" value="Buy">
+[% END %]
+<div class="detailswrapper"><a onclick="showDetails(this)"> Details</a><div class="details">
+    <ul>
+    [% FOR service = p.services %]
+        <li> [% service.name %]
+    [% END %]
+    </ul>
+</div>
+[% END %]
+
+
+<script>
+$(".details").hide();
+function showDetails(e) { 
+    $(e.nextSibling).toggle("slow") }
+</script>

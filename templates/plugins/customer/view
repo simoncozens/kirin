@@ -1,0 +1,31 @@
+<h2> Viewing customer [% customer.forename %] [%customer.surname %]</h2>
+
+<p> <a href="/customer/edit">Edit personal details</a></p>
+
+<h3> Your services</h3>
+[% IF customer.subscriptions %]
+<ul>
+[% FOR s = customer.subscriptions %]
+<li> [% s.package.name %] (Expires [% s.expires %])
+<div class="detailswrapper"><a onclick="showDetails(this)"> Details...</a><div class="details">
+    <ul>
+    [% FOR service = s.package.services %]
+        <li> [% service.name %]
+    [% END %]
+    </ul>
+</div>
+[% END %]
+</ul>
+<p> You can always <a href="/package/list">register for more
+services</a>.</p>
+
+[% ELSE %]
+<p> You don't seem to have any services! <a href="/package/list">Buy
+some!</a></p>
+[% END %]
+
+<script>
+$(".details").hide();
+function showDetails(e) { 
+    $(e.nextSibling).toggle("slow") }
+</script>

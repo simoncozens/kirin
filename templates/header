@@ -16,8 +16,19 @@
     <h1> Kirin </h1>
     <p> Domain management software </p>
 </div>
-<div id="panel"><ul>
-    [% FOR i = kirin.plugins; USE k = Class(i); IF req.user.can_do(k.name) %] <li><a href="/[%k.name%]">[%k.user_name%]</a> [% END; END %]
+<div id="panel">
+<div class="customerselect">
+    Logged in as [%self.user.username %], administering
+    [% IF customers.size > 1 %]
+    <select>
+        [% FOR c = customers %]
+        [% END %]
+    </select>
+    [% ELSE; self.customer.forename; " "; self.customer.surname; END %]
+</div>
+<ul>
+    [% FOR i = self.plugins; USE k = Class(i); %]
+    [% IF self.user.can_do(k.name) %] <li><a href="/[%k.name%]/[%k.default_action%]">[%k.user_name%]</a> [% END; END %]
 </ul></div>
 <div id="main">
     [% IF req.messages.size %]

@@ -1,9 +1,8 @@
 package Kirin::Plugin::Domain;
 use strict;
+use base 'Kirin::Plugin';
 
-sub name      { "domain"                }
 sub user_name { "Domains"               } 
-sub target    { "Kirin::Plugin::Domain" }
 
 sub handle {
     my ($self, $req, @args) = @_;

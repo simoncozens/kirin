@@ -1,8 +1,7 @@
 package Kirin::Plugin::MailAlias;
-
+use base 'Kirin::Plugin';
 sub name      { "mail_alias"            }
 sub user_name { "Mail Aliases"          } 
-sub target    { "Kirin::Plugin::Domain" }
 
 sub handle {
     my ($self, $req, @args) = @_;
