@@ -47,8 +47,12 @@ sub authenticate {
         warn "XXX ACL check here";
         # XXX ACL check here
         $sess->set("customer", $customer->id);
+        $self->{customer} = $customer;
     }
-    $self->{customer} = Kirin::DB::Customer->retrieve($sess->get("customer")) || $self->{user}->customer;
+    elsif (my $cust = $sess->get("customer")) { 
+        $self->{customer} = Kirin::DB::Customer->retrieve($cust);
+    }
+    $self->{customer} ||= $self->{user}->customer;
     if (!$self->{customer} and !try_to_add_customer($self, $sess)) {
         return $self->respond("add_customer");
     }
