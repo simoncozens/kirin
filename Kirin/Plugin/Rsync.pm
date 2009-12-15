@@ -8,7 +8,7 @@ sub user_name {"Backups"}
 sub view {
     my ($self, $mm) = @_;
     my ($ac) = Kirin::DB::Rsync->search(customer => $mm->{customer});
-    my $quota = $self->quota($mm->{customer});
+    my $quota = $self->_quota($mm->{customer});
     $mm->respond("plugins/rsync/view", rsync => $ac, quota => $quota);
 }
 
@@ -27,7 +27,7 @@ sub _find_free_account {
     # Find me an rsync entry without a customer
     my (@free) = Kirin::DB::Rsync->search_empty();
     if (!@free) {
-        Kirin->email_boss(
+        Kirin::Utils->email_boss(
             severity => "error",
             customer => $customer,
             context  => "trying to buy rsync space",
@@ -36,7 +36,7 @@ sub _find_free_account {
         return;
     }
     if (@free <= RUNNING_LOW) {
-        Kirin->email_boss(
+        Kirin::Utils->email_boss(
             severity => "warning",
             context  => "trying to buy rsync space",
             message  => @free." rsync.net accounts left; please obtain some more"
@@ -83,7 +83,7 @@ sub _parse_email {
     }
 }
 
-sub setup_db {
+sub _setup_db {
 Kirin::DB::Rsync->set_sql(empty => q{
 SELECT * FROM rsync
 WHERE customer IS NULL
