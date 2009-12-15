@@ -29,7 +29,13 @@ sub authenticate {
         return $self->respond("login");
     }
     $self->{user} = Kirin::DB::User->retrieve($sess->get("user"));
-    $self->{customer} = $sess->get("customer") || $self->{user}->customer;
+    if (my $cid = $self->{req}->parameters()->{cid}) {
+        my $customer = Kirin::DB::Customer->retrieve($cid);
+        warn "XXX ACL check here";
+        # XXX ACL check here
+        $sess->set("customer", $customer->id);
+    }
+    $self->{customer} = Kirin::DB::Customer->retrieve($sess->get("customer")) || $self->{user}->customer;
     return;
 }
 
@@ -37,9 +43,7 @@ sub default_nounverb { qw/customer view/}
 sub additional_args {
     my $self = shift;
     if (my $user = $self->{user}) {
-        my @customers = $user->customers;
-        if (@customers > 1) { return customers => \@customers }
-        else { return customers => [$user->customer] }
+        return customers => [ $user->my_customers]
     }
 }
 

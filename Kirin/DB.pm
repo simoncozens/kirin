@@ -27,6 +27,13 @@ sub setup_db {
 
 package Kirin::DB::User;
 
+sub my_customers {
+    my $self = shift;
+    return Kirin::DB::Customer->retrieve_all if $self->is_root;
+    if ($self->customers->count > 1) { return $self->customers }
+    return $self->customer
+}
+
 sub is_root {
     my $self = shift;
     if (($acl) = Kirin::DB::Acl->search(user => $self->id, domain => "*", action => "*", yesno => 1)) { return 1 }

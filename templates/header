@@ -18,18 +18,29 @@
 </div>
 <div id="panel">
 <div class="customerselect">
+[% IF self.user %]
     Logged in as [%self.user.username %], administering
     [% IF customers.size > 1 %]
-    <select>
+    <select id="customerSelect" onchange="changeCustomer()">
         [% FOR c = customers %]
+            <option [% IF self.customer.id == c.id %]selected[%END%] value="[%c.id%]">[%c.forename; " "; c.surname | html %]</option>
         [% END %]
     </select>
+    <script>
+        function changeCustomer() {
+            var loc = document.location + "";
+            loc = loc.replace(/\?cid=.*/, "");
+            document.location = loc+"?cid="+$("#customerSelect")[0].value;
+        }
+    </script>
     [% ELSE; self.customer.forename; " "; self.customer.surname; END %]
 </div>
 <ul>
     [% FOR i = self.plugins; USE k = Class(i); %]
     [% IF self.user.can_do(k.name) %] <li><a href="/[%k.name%]/[%k.default_action%]">[%k.user_name%]</a> [% END; END %]
-</ul></div>
+</ul>
+[% END%]
+</div>
 <div id="main">
     [% IF req.messages.size %]
     <ul class="messages">
