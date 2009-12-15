@@ -30,8 +30,16 @@ sub app {
 sub authenticate {
     my $self = shift;
     my $sess = $self->{req}->env->{"plack.session"};
-    if (!$sess->get("user") and !try_to_login($self)) {
-        return $self->respond("login");
+    if (!$sess->get("user")) {
+        if ($self->{req}->path eq "/signup") {
+            if (try_to_add_new_user($self)) { 
+                $self->{req}->path("/");
+            } else { 
+                return $self->respond("signup");
+            }
+        } elsif (!try_to_login($self)) {
+            return $self->respond("login");
+        }
     }
     $self->{user} = Kirin::DB::User->retrieve($sess->get("user"));
     if (my $cid = $self->{req}->parameters()->{cid}) {
@@ -41,6 +49,9 @@ sub authenticate {
         $sess->set("customer", $customer->id);
     }
     $self->{customer} = Kirin::DB::Customer->retrieve($sess->get("customer")) || $self->{user}->customer;
+    if (!$self->{customer} and !try_to_add_customer($self, $sess)) {
+        return $self->respond("add_customer");
+    }
     return;
 }
 
@@ -75,3 +86,19 @@ sub try_to_login {
     push @{$self->{messages}}, "Username or password incorrect";
     return 0;
 }
+
+sub try_to_add_new_user {
+    # XXX Check captcha
+    #
+    # $user  = Kirin::DB::User->create({ ... });
+    # $self->{req}->env->{"plack.session"}->set("user" => $user->id);
+}
+sub try_to_add_customer {
+    # 
+    # $customer = Kirin::DB::Customer->create({ ... });
+    # $self->{user}->customer($customer);
+    # $self->{user}->update();
+    # $sess->set("customer", $customer->id);
+}
+
+1;

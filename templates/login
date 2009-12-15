@@ -5,3 +5,5 @@
     <p>Password: <input name="password" type="password"></p>
     <p><input type="submit" name="Login"></p>
 </form>
+
+<p>If you don't have an account, you can <a href="/signup">sign up</a>.</p>
