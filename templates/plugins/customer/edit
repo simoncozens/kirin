@@ -1,6 +1,8 @@
 <h2>Edit customer details</h2>
 
 [% MACRO to_field(x) x.replace(" ", "_") | lower %]
+<p>Click on a value to edit it</p>
+
 <form method="post">
 <input type="submit" style="display:none" id="submit">
 <input type="hidden" name="editing" value="1"/>
