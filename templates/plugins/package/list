@@ -1,11 +1,21 @@
 <h2> Packages available </h2>
+<select id="catSelect" onchange="changeCategory()">
+    [% FOR c = categories %]
+    <option [% "selected" IF c =="hosting"%] value="[%c|html%]">[%c |ucfirst | html%]</option>
+    [% END %]
+</select>
 [% FOR p = packages %]
+<div class="package [%p.category%]">
 <h3> [%p.name %] </h3>
 [% SET this_subscription = self.customer.subscriptions("package", p.id).first;
  IF this_subscription; %]
     <p>(Expires [%this_subscription.expires%])</p>
  [% ELSE%]
+    <p>[%p.cost%]/[%p.duration%]</p>
+<form method="post">
+<input type="hidden" value="[%p.id%]" name="buyproduct">
 <input type="submit" value="Buy">
+</form>
 [% END %]
 <div class="detailswrapper"><a onclick="showDetails(this)"> Details</a><div class="details">
     <ul>
@@ -14,11 +24,18 @@
     [% END %]
     </ul>
 </div>
+</div>
+</div>
 [% END %]
-
-
 <script>
 $(".details").hide();
+$(".package").hide();
+$(".hosting").show();
+function changeCategory() {
+    $(".package").hide("slow");
+    $("."+$("#catSelect")[0].value).show("slow");
+}
+
 function showDetails(e) { 
     $(e.nextSibling).toggle("slow") }
 </script>
