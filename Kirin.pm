@@ -1,8 +1,11 @@
 package Kirin;
 use strict;
 use warnings;
-use base 'MicroMaypole';
+use base qw(Class::Data::Inheritable MicroMaypole);
+Kirin->mk_classdata("args");
+Kirin->args({});
 use Kirin::DB;
+use Kirin::Utils;
 use Authen::Passphrase;
 use Module::Pluggable require=>1;
 our %map = map { $_->name => $_ } Kirin->plugins();
@@ -11,6 +14,7 @@ use Plack::Builder;
 sub app {
     my ($self, %args) = @_;
     Kirin::DB->setup_db($args{dsn});
+    Kirin->args(\%args);
 
     builder {
       enable 'Session', store => 'File';
@@ -20,8 +24,9 @@ sub app {
           model_prefix => "Kirin::Plugin",
           %args
       );
-    }
+    };
 }
+
 sub authenticate {
     my $self = shift;
     my $sess = $self->{req}->env->{"plack.session"};
@@ -37,10 +42,6 @@ sub authenticate {
     }
     $self->{customer} = Kirin::DB::Customer->retrieve($sess->get("customer")) || $self->{user}->customer;
     return;
-}
-
-sub email_boss {
-    warn @_ # XXX
 }
 
 sub default_nounverb { qw/customer view/}
