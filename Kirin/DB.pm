@@ -26,6 +26,7 @@ sub setup_db {
 
     Kirin::DB::Invoicelineitem->has_a(invoice => "Kirin::DB::Invoice");
     Kirin::DB::Invoice->has_many(invoicelineitems => "Kirin::DB::Invoicelineitem");
+    Kirin::DB::Invoice->has_a(customer => "Kirin::DB::Customer");
 
     for (Kirin->plugins) { $_->can("setup_db") && $_->setup_db; }
 }
