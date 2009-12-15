@@ -5,7 +5,7 @@ use base 'MicroMaypole';
 use Kirin::DB;
 use Authen::Passphrase;
 use Module::Pluggable require=>1;
-my @load = Kirin->plugins();
+our %map = map { $_->name => $_ } Kirin->plugins();
 use Plack::Builder;
 
 sub app {
@@ -37,6 +37,10 @@ sub authenticate {
     }
     $self->{customer} = Kirin::DB::Customer->retrieve($sess->get("customer")) || $self->{user}->customer;
     return;
+}
+
+sub email_boss {
+    warn @_ # XXX
 }
 
 sub default_nounverb { qw/customer view/}

@@ -23,6 +23,8 @@ sub setup_db {
     Kirin::DB::Subscription->has_a(package => "Kirin::DB::Package");
     Kirin::DB::Subscription->has_a(customer => "Kirin::DB::Service");
     Kirin::DB::Customer->has_many(subscriptions => "Kirin::DB::Subscription");
+
+    for (Kirin->plugins) { $_->can("setup_db") && $_->setup_db; }
 }
 
 package Kirin::DB::User;
@@ -67,12 +69,36 @@ sub my_domains { # All the domains that I can X
         $self->customers;
 }
 
+package Kirin::DB::Package;
+sub _call_service_handlers {
+    my ($self, $type, $customer) = @_;
+    my $method = "_handle_${type}_request";
+    my $ok = 1;
+    # XXX Start transaction
+    for my $service ($self->services) {
+        next if !$service->plugin or not exists $Kirin::map{$service->plugin};
+        my $klass = $Kirin::map{$service->plugin};
+        next unless $klass->can($method);
+        if (!$klass->_handle_buy_request($customer, $service->parameter)) {
+            $ok = 0; last; 
+        }
+    }
+    if ($ok) { # XXX Commit
+    } else {
+        # XXX Rollback
+    }
+    return $ok;
+}
+
 package Kirin::DB::Customer;
 use Time::Seconds;
 use Time::Piece;
 
 sub buy_package {
     my ($self, $package) = @_;
+
+    # Set up all our services
+    return unless $package->_call_service_handlers(buy => $self);
 
     # Create a subscription to this customer
     my $duration = "ONE_".uc $package->duration; # URGH
@@ -85,7 +111,6 @@ sub buy_package {
     });
 
     # Add a line in the guy's next bill
-    # Trigger any plugins that need triggering
     return 1;
 }   
 
