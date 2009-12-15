@@ -1,0 +1,16 @@
+<h2> Your backup details </h2>
+
+[% IF rsync %]
+<p>
+    Last month you used [% rsync.last_used %] of your quota ([% quota %]Gb)
+</p>
+<p>
+    To log into your account, use
+    <pre>
+rsync://[%rsync.login%]:[%rsync.password%]@[%rsync.host%]/
+</pre>
+</p>
+[% ELSE %]
+    You don't seem to have a backup account. Why not
+    <a href="/packages/list?category=backup">add one</a>?
+[% END %]

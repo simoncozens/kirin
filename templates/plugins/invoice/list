@@ -1,0 +1,18 @@
+<h2> Your invoices </h2>
+[% MACRO money(x) BLOCK; "&#163;"; x | format("%.2f"); END %]
+
+<table>
+<tr><th>ID</th><th>Status</th><th>Total</th></tr>
+[% FOR i = invoices %]
+<tr>
+<td>[%i.id%]</td>
+<td>[% IF i.paid %] Paid [% ELSE; IF i.issued %]
+Issued ([%i.issuedate%])
+[% ELSE %] Pending [% END; END %]
+</td>
+<td>[%money(i.total)%]</td>
+<td> <a href="/invoice/view/[%i.id%]">Click here to view</a></td>
+</tr>
+[% END %]
+</table>
+

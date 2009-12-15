@@ -1,0 +1,29 @@
+<h2> Invoice number [% invoice.id %] </h2>
+[% MACRO money(x) BLOCK; "&#163;"; x | format("%.2f"); END %]
+
+<table>
+<tr><th> Number</th><td> [% invoice.id %]</tr>
+<tr><th> To </th><td> [% invoice.customer.forename %] [%invoice.customer.surname%]</td></tr>
+<tr><th> Status </th> <td>
+[% IF invoice.paid %] Paid [% ELSE; IF invoice.issued %]
+Issued ([%invoice.issuedate%])
+[% ELSE %] Pending [% END; END %]
+</td></tr>
+<tr><th>Total</th><td>[%money(invoice.total)%]</td></tr>
+</table>
+
+<p> Invoice details </p>
+
+<table>
+<tr><th>&nbsp;</th><th>Description</th><th>Cost</th></tr>
+[% FOR i = invoice.invoicelineitems %]
+<tr>
+<td>[%i.id%]</td>
+<td>[%i.description%]</td>
+<td>[%money(i.cost)%]</td>
+</tr>
+[% END %]
+<tr><th>Total</th><td>&nbsp;</td><td>[%money(invoice.total)%]</td></tr>
+</table>
+
+[% invoice.paymentbutton %]

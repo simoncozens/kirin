@@ -24,6 +24,9 @@ sub setup_db {
     Kirin::DB::Subscription->has_a(customer => "Kirin::DB::Service");
     Kirin::DB::Customer->has_many(subscriptions => "Kirin::DB::Subscription");
 
+    Kirin::DB::Invoicelineitem->has_a(invoice => "Kirin::DB::Invoice");
+    Kirin::DB::Invoice->has_many(invoicelineitems => "Kirin::DB::Invoicelineitem");
+
     for (Kirin->plugins) { $_->can("setup_db") && $_->setup_db; }
 }
 
@@ -79,7 +82,7 @@ sub _call_service_handlers {
         next if !$service->plugin or not exists $Kirin::map{$service->plugin};
         my $klass = $Kirin::map{$service->plugin};
         next unless $klass->can($method);
-        if (!$klass->_handle_buy_request($customer, $service->parameter)) {
+        if (!$klass->$method($customer, $service->parameter)) {
             $ok = 0; last; 
         }
     }
@@ -95,7 +98,7 @@ use Time::Seconds;
 use Time::Piece;
 
 sub buy_package {
-    my ($self, $package) = @_;
+    my ($self, $package, $mm) = @_;
 
     # Set up all our services
     return unless $package->_call_service_handlers(buy => $self);
@@ -105,13 +108,55 @@ sub buy_package {
     (warn "PACKAGE ".$package->name." has illegal duration!"), return
         unless Time::Seconds->can($duration);
     
-    $self->add_to_subscriptions({
+    my $subscription = $self->add_to_subscriptions({
         "package" => $package->id,
         expires => (Time::Piece->new() + Time::Seconds->$duration)->ymd
     });
 
     # Add a line in the guy's next bill
+    $self->bill_for($subscription, $mm);
     return 1;
-}   
+}
+
+sub cancel_subscription {
+    my ($self, $subscription) = @_;
+    $subscription->package->_call_service_handlers(cancel => $self);
+    $subscription->delete;
+}
+
+sub bill_for {
+    my ($customer, $item, $mm) = @_; 
+    # Ensure we have an open invoice for this customer
+    my ($invoice) = Kirin::DB::Invoice->find_or_create(
+        customer => $customer,
+        issued => 0,
+    );
+
+    # Add the relevant line-item to the invoice
+    my ($description, $cost);
+    if (UNIVERSAL::isa($item, "Kirin::DB::Subscription")) {
+        $description = $item->package->name." (expires ".$item->expires.")";
+        $cost = $item->package->cost;
+    } elsif (UNIVERSAL::isa($item, "Kirin::DB::Package")) { 
+        $description = $item->description;
+        $cost = $item->cost;
+    } else {
+        # Assume it's a hashref for when we're providing services
+    }
+    Kirin::DB::Invoicelineitem->create({
+        invoice => $invoice,
+        description => $description,
+        cost => $cost
+    });
+    if ($mm and exists $mm->{send_invoice_now_trigger} and
+        $invoice->total > $mm->{send_invoice_now_trigger}) {
+        $invoice->dispatch;
+    }
+}
+
+package Kirin::DB::Invoice;
+use List::Util qw(sum);
+sub total { return sum map {$_->cost } shift->invoicelineitems; }
 
 1;
+
