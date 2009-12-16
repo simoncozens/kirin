@@ -33,6 +33,11 @@ sub total { return sum map {$_->cost } shift->invoicelineitems; }
 sub send_all_reminders { 
 
 }
+
+sub dispatch_all_unissued {
+    $_->dispatch for shift->search(issued => 0);
+}
+
 sub dispatch {
     my $self = shift;
     return if $self->issued() or $self->total <= 0;
