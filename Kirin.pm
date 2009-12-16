@@ -100,10 +100,11 @@ sub try_to_add_new_user {
 sub try_to_add_customer {
     my $self = shift;
     my $params = $self->{req}->parameters();
-    # Need at least forename and surname
+    # Need at least forename and surname and billing address
     # No error because JS validation should have caught it anyway so if
     # we get here the user's being naughty
-    return unless $params->{forename} and $params->{surname};
+    return unless $params->{forename} and $params->{surname} 
+        and $params->{billing_address};
     # Do more complex validation here if we need it
 
     my $customer = Kirin::DB::Customer->create({

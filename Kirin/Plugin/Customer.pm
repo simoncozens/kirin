@@ -15,7 +15,7 @@ sub edit {
 sub add {
     my ($self, $mm, @args) = @_;
     my $params = $mm->{req}->parameters;
-    if ($params->{forename} and $params->{surname}) {
+    if ($params->{forename} and $params->{surname} and $params->{billing_email}) {
         my $customer = Kirin::DB::Customer->create({
             map { $_ => $params->{$_} }
             grep { $params->{$_} }
