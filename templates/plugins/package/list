@@ -10,6 +10,11 @@
 [% SET this_subscription = self.customer.subscriptions("package", p.id).first;
  IF this_subscription; %]
     <p>(Expires [%this_subscription.expires%])</p>
+    <form method="post">
+    <input type="hidden" value="[%this_subscription.id%]" name="cancelsubscription">
+    <input type="submit" value="Cancel">
+    </form>
+
  [% ELSE%]
     <p>[%p.cost%]/[%p.duration%]</p>
 <form method="post">

@@ -11,6 +11,12 @@ sub list {
             $mm->{customer}->buy_package($package)) {
                 push @{$mm->{messages}}, "Added ".$package->name." to your account";
         }
+    } elsif (my $cancel = $mm->{req}->params()->{cancelsubscription}) {
+        my $sub =  Kirin::DB::Subscription->retrieve($cancel);
+        warn "XXX I need an ACL check here";
+        push @{$mm->{messages}}, "Removed ".$sub->package->name." from your account";
+        $mm->{customer}->cancel_subscription($sub);
+
     }
     my @packages = Kirin::DB::Package->retrieve_all;
     my %categories = map { $_->category => 1 } @packages;
@@ -40,7 +46,7 @@ sub _call_service_handlers {
         next if !$service->plugin or not exists $Kirin::map{$service->plugin};
         my $klass = $Kirin::map{$service->plugin};
         next unless $klass->can($method);
-        if (!$klass->$method($customer, $service->parameter)) {
+        if (!$klass->$method($customer, $service)) {
             $ok = 0; last; 
         }
     }
