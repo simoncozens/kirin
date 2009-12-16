@@ -74,6 +74,22 @@ sub buy_package {
 sub cancel_subscription {
     my ($self, $subscription) = @_;
     $subscription->package->_call_service_handlers(cancel => $self);
+    # Find the invoice for this
+    my ($lineitem) = Kirin::DB::Invoicelineitem->search( subscription => $subscription);
+    if ($lineitem) {
+        if ($lineitem->invoice->issued) {
+            # This needs to be resolved manually
+            Kirin::Utils->email_boss(
+                severity => "info",
+                customer => $self,
+                context  => "Cancelled subscription to ".$subscription->package->name,
+                message  => "Service has already been invoiced - refund may need to be processed manually"
+            );
+        } else {
+            # Silently remove it
+            $lineitem->delete;
+        }
+    }
     $subscription->delete;
 }
 
@@ -87,22 +103,27 @@ sub bill_for {
 
     # Add the relevant line-item to the invoice
     my ($description, $cost);
+    my $subscription;
     if (UNIVERSAL::isa($item, "Kirin::DB::Subscription")) {
         $description = $item->package->name." (expires ".$item->expires.")";
         $cost = $item->package->cost;
+        $subscription = $item->id;
     } elsif (UNIVERSAL::isa($item, "Kirin::DB::Package")) { 
         $description = $item->description;
         $cost = $item->cost;
     } else {
         # Assume it's a hashref for when we're providing services
+        $description = $_->{description};
+        $cost => $_->{cost};
     }
     Kirin::DB::Invoicelineitem->create({
         invoice => $invoice,
         description => $description,
-        cost => $cost
+        cost => $cost,
+        subscription => $subscription
     });
-    if ($mm and exists $mm->{send_invoice_now_trigger} and
-        $invoice->total > $mm->{send_invoice_now_trigger}) {
+    if ($mm and exists Kirin->args->{send_invoice_now_trigger} and
+        $invoice->total > Kirin->args->{send_invoice_now_trigger}) {
         $invoice->dispatch;
     }
 }

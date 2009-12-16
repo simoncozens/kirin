@@ -20,6 +20,8 @@ sub list {
 
 sub _setup_db {
     Kirin::DB::Invoicelineitem->has_a(invoice => "Kirin::DB::Invoice");
+    Kirin::DB::Invoicelineitem->has_a(subscription => "Kirin::DB::Subscription");
+    Kirin::DB::Subscription->might_have(invoicelineitem => "Kirin::DB::Invoicelineitem");
     Kirin::DB::Invoice->has_many(invoicelineitems => "Kirin::DB::Invoicelineitem");
     Kirin::DB::Invoice->has_a(customer => "Kirin::DB::Customer");
 }

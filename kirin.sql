@@ -44,6 +44,7 @@ CREATE TABLE invoicelineitem (
     id integer primary key not null,
     invoice integer,
     description varchar(255),
+    subscription integer,
     cost decimal(5,2)
 );
 
