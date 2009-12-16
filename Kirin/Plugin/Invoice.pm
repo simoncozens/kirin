@@ -24,6 +24,7 @@ sub _setup_db {
     Kirin::DB::Subscription->might_have(invoicelineitem => "Kirin::DB::Invoicelineitem");
     Kirin::DB::Invoice->has_many(invoicelineitems => "Kirin::DB::Invoicelineitem");
     Kirin::DB::Invoice->has_a(customer => "Kirin::DB::Customer");
+    Kirin::DB::Customer->has_many(invoices => "Kirin::DB::Invoice");
 }
 
 package Kirin::DB::Invoice;
