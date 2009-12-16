@@ -37,11 +37,11 @@ sub default_nounverb {}
 sub handler {
     my ($self, $req) = @_;
     $self->{req} = $req;
+    if ($resp = $self->authenticate()) { return $resp }
     my (undef, $noun, $verb, @args) = split /\//,  $req->path;
     if (!$noun) { ($noun, $verb) = $self->default_nounverb }
     $self->{req}{noun} = $noun;
     $self->{req}{verb} = $verb;
-    if ($resp = $self->authenticate()) { return $resp }
     # Convert "noun" to model prefix
     $req->{template} = "$noun/$verb";
     $noun =~ s/_(\w)/\U\1/g; my $class = $self->{model_prefix}."::".ucfirst($noun);
