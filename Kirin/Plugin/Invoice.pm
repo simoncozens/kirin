@@ -35,6 +35,7 @@ sub send_all_reminders {
 }
 sub dispatch {
     my $self = shift;
+    return if $self->issued() or $self->total <= 0;
     $self->issued(1);
     $self->issuedate(Time::Piece->new());
     my $t = Template->new({ 
