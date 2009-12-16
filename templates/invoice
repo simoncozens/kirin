@@ -1,0 +1,21 @@
+From: ISP Invoicing <kirin@localhost>
+To: [% SET customer = invoice.customer; customer.forename %] [%customer.surname%] <[%customer.billing_email%]>
+Subject: Invoice [% invoice.id %]
+
+Invoice number [% invoice.id %]
+[% MACRO money(x) BLOCK; "GBP"; x | format("%.2f"); END %]
+
+To: [% invoice.customer.forename %] [%invoice.customer.surname%]
+Status: [% IF invoice.paid %] Paid [% ELSE; IF invoice.issued %] Issued ([%invoice.issuedate%]) [% ELSE %] Pending [% END; END %] 
+Total: [%money(invoice.total)%]
+
+Invoice details
+
+[% FOR i = invoice.invoicelineitems %]
+[%i.id%]: [%i.description%] ([%money(i.cost)%])
+[% END %]
+
+Total: [%money(invoice.total)%]
+
+You can pay this invoice by visiting .../invoice/view/[%invoice.id%]
+Terms ...
