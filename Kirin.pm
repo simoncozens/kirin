@@ -98,11 +98,26 @@ sub try_to_add_new_user {
     # $self->{req}->env->{"plack.session"}->set("user" => $user->id);
 }
 sub try_to_add_customer {
-    # 
-    # $customer = Kirin::DB::Customer->create({ ... });
-    # $self->{user}->customer($customer);
-    # $self->{user}->update();
-    # $sess->set("customer", $customer->id);
+    my $self = shift;
+    my $params = $self->{req}->parameters();
+    # Need at least forename and surname
+    # No error because JS validation should have caught it anyway so if
+    # we get here the user's being naughty
+    return unless $params->{forename} and $params->{surname};
+    # Do more complex validation here if we need it
+
+    my $customer = Kirin::DB::Customer->create({
+        map { $_ => $params->{$_} }
+        grep { $params->{$_} }
+        Kirin::DB::Customer->columns()
+    });
+    $self->{user}->add_to_customers({ customer => $customer });
+    $self->{user}->customer($customer);
+    $self->{user}->update();
+    my $sess = $self->{req}->env->{"plack.session"};
+    $sess->set("customer", $customer->id);
+    $self->{customer} = $customer;
+    return 1;
 }
 
 1;

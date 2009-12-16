@@ -1,0 +1,19 @@
+<h2>You first need to create your customer profile</h2>
+
+[% MACRO to_field(x) x.replace(" ", "_") | lower %]
+
+<form method="post">
+<input type="submit" id="submit">
+<input type="hidden" name="editing" value="1"/>
+<table>
+[% FOR thing = ["Forename", "Surname", "Org", "Address", "Town",
+    "County", "Country", "Postcode", "Phone", "Fax", "Email",
+    "Billing Email", "SMS"];
+SET f = to_field(thing); %]
+<tr>
+    <th> [% thing %] </th>
+    <td class="editable"><input name="[%f%]"></td>
+</tr>
+[% END %]
+</table>
+</form>
