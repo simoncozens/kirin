@@ -1,8 +1,11 @@
 <h2>Editing user</h2>
 
-<a href="/customer/edit/[%user.customer.id%]">Edit your customer details</a>
+<p><a href="/customer/edit/[%user.customer.id%]">Edit your personal
+details</a></p>
 
-[% SET c = user.customers; IF c.size > 1 %]
+<p><a href="/customer/add">Add a new customer to your profile</a></p>
+
+[% SET c = customers; IF c.size > 1 %]
 
 <h3> Edit your customers' details </h3>
 <ul>
