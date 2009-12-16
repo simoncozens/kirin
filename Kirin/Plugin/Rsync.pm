@@ -47,13 +47,17 @@ sub _find_free_account {
 }
 
 sub _handle_cancel_request {
-    # For now, just deallocate user
-    my ($self, $customer) = @_;
+    my ($self, $customer, $service) = @_;
     my ($ac) = Kirin::DB::Rsync->search(customer => $customer);
-    return unless $ac;
+    return 1 unless $ac;
+    # Does the customer have any other backup quota apart from the one
+    # we're deleting? If so, don't scrub them yet.
+    if ($self->_quota($customer) - $service->parameter >= 0) {
+        return 1;
+    }
     $ac->customer(0);
     $ac->update();
-
+    return 1;
 }
 
 sub _quota {
