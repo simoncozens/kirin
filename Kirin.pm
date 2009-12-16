@@ -30,6 +30,7 @@ sub app {
 sub authenticate {
     my $self = shift;
     my $sess = $self->{req}->env->{"plack.session"};
+    if ($self->{req}->path eq "/logout") { $sess->set("user","") }
     if (!$sess->get("user")) {
         if ($self->{req}->path eq "/signup") {
             if (try_to_add_new_user($self)) { 

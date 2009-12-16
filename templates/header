@@ -34,6 +34,7 @@
         }
     </script>
     [% ELSE; self.customer.forename; " "; self.customer.surname; END %]
+    <a "/logout">Logout</a>
 </div>
 <ul>
     [% FOR i = self.plugins; USE k = Class(i); %]
