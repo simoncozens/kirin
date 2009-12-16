@@ -12,6 +12,20 @@ sub edit {
     $mm->respond("plugins/customer/edit", customer => $customer);
 }
 
+sub add {
+    my ($self, $mm, @args) = @_;
+    my $params = $mm->{req}->parameters;
+    if ($params->{forename} and $params->{surname}) {
+        my $customer = Kirin::DB::Customer->create({
+            map { $_ => $params->{$_} }
+            grep { $params->{$_} }
+            Kirin::DB::Customer->columns()
+        });
+        $self->{user}->add_to_customers({ customer => $customer });
+        $self->{user}->update();
+    }
+}
+
 sub view {
     my ($self, $mm) = @_;
     # XXX ACL Check
