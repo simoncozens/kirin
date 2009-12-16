@@ -7,6 +7,7 @@ Kirin->args({});
 use Kirin::DB;
 use Kirin::Utils;
 use Authen::Passphrase;
+use Authen::Passphrase::MD5Crypt;
 use Module::Pluggable require=>1;
 our %map = map { $_->name => $_ } Kirin->plugins();
 use Plack::Builder;
@@ -86,6 +87,8 @@ sub try_to_login {
     if ($real->match($p)) {
         push @{$self->{messages}}, "Login successful";
         $self->{req}->env->{"plack.session"}->set("user" => $user->id);
+        $self->{req}->env->{"plack.session"}->set("customer" => "");
+        # This corrects a subtle bug if we've been logged in as someone else
         return 1;
     }
     push @{$self->{messages}}, "Username or password incorrect";
@@ -94,9 +97,21 @@ sub try_to_login {
 
 sub try_to_add_new_user {
     # XXX Check captcha
-    #
-    # $user  = Kirin::DB::User->create({ ... });
-    # $self->{req}->env->{"plack.session"}->set("user" => $user->id);
+    my $self = shift;
+    my $params = $self->{req}->parameters();
+    # XXX message
+    return unless $params->{username} and $params->{password};
+    my $user  = Kirin::DB::User->create({ 
+        username => $params->{username},
+        password => Authen::Passphrase::MD5Crypt->new(
+            salt_random => 1,
+            passphrase => $params->{password}
+        )->as_crypt
+    });
+    return unless $user; # Already exists - XXX add message to that effect
+    $self->{req}->env->{"plack.session"}->set("user" => $user->id);
+    $self->{req}->env->{"plack.session"}->set("customer" => "");
+    return 1;
 }
 sub try_to_add_customer {
     my $self = shift;
@@ -105,7 +120,7 @@ sub try_to_add_customer {
     # No error because JS validation should have caught it anyway so if
     # we get here the user's being naughty
     return unless $params->{forename} and $params->{surname} 
-        and $params->{billing_address};
+        and $params->{billing_email};
     # Do more complex validation here if we need it
 
     my $customer = Kirin::DB::Customer->create({

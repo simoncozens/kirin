@@ -1,0 +1,8 @@
+<h2> Register for a new account </h2>
+
+<form method="post" id="loginform">
+    <p>Username: <input name="username"></p>
+    <p>Password: <input name="password" type="password"></p>
+    <p><input type="submit" name="Register"></p>
+</form>
+
