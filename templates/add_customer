@@ -1,4 +1,8 @@
+[% IF adding %]
+<h2> Add a new customer to your profile </h2>
+[% ELSE %]
 <h2>You first need to create your customer profile</h2>
+[% END %]
 
 [% MACRO to_field(x) x.replace(" ", "_") | lower %]
 

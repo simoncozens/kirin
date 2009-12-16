@@ -15,14 +15,24 @@ sub edit {
 sub add {
     my ($self, $mm, @args) = @_;
     my $params = $mm->{req}->parameters;
+    # XXX This code needs to be folded into Kirin::try_to_add_customer
     if ($params->{forename} and $params->{surname} and $params->{billing_email}) {
         my $customer = Kirin::DB::Customer->create({
             map { $_ => $params->{$_} }
             grep { $params->{$_} }
             Kirin::DB::Customer->columns()
         });
-        $self->{user}->add_to_customers({ customer => $customer });
-        $self->{user}->update();
+        Kirin::DB::Admin->find_or_create({
+            user => $mm->{user}->id,
+            customer => $customer->id,
+        });
+        $mm->{user}->update();
+        $mm->{customer} = $customer;
+        my $sess = $mm->{req}->env->{"plack.session"};
+        $sess->set("customer", $customer->id);
+        $mm->respond("plugins/customer/view", customer => $customer);
+    } else {
+        $mm->respond("add_customer", adding => 1);
     }
 }
 
