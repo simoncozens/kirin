@@ -26,4 +26,4 @@ Issued ([%invoice.issuedate%])
 <tr><th>Total</th><td>&nbsp;</td><td>[%money(invoice.total)%]</td></tr>
 </table>
 
-[% invoice.payment_form %]
+[% invoice.payment_form(self) %]
