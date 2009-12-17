@@ -2,6 +2,8 @@ package MicroMaypole;
 use Template;
 use Plack::Request;
 use Plack::Response;
+use strict;
+use warnings;
 
 sub app {
     my ($self, %args) = @_;
@@ -37,16 +39,17 @@ sub default_nounverb {}
 sub handler {
     my ($self, $req) = @_;
     $self->{req} = $req;
-    if ($resp = $self->authenticate()) { return $resp }
+    if (my $resp = $self->authenticate()) { return $resp }
     my (undef, $noun, $verb, @args) = split /\//,  $req->path;
     if (!$noun) { ($noun, $verb) = $self->default_nounverb }
     $self->{req}{noun} = $noun;
     $self->{req}{verb} = $verb;
     # Convert "noun" to model prefix
     $req->{template} = "$noun/$verb";
-    $noun =~ s/_(\w)/\U\1/g; my $class = $self->{model_prefix}."::".ucfirst($noun);
+    $noun =~ s/_(\w)/\U$1/g; my $class = $self->{model_prefix}."::".ucfirst($noun);
     # Does this class even exist?
     if (!$class->isa("UNIVERSAL")) { return $self->do404(); }
+    if ($verb =~ /^_/) { return $self->do404(); } # No you don't
     if (!$class->can($verb)) { 
         warn "Can't call method $verb on class $class" ;
         return $self->do404();
