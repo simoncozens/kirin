@@ -15,11 +15,55 @@ sub cancel {
     my $invoice = $pp->invoice;
     $pp->delete;
     # Back to reviewing the invoice
-    my $frob = $mm->{req}->env->{"plack.session"}->set("paypal_frob", "");
+    $mm->{req}->env->{"plack.session"}->set("paypal_frob", "");
     push @{$mm->{messages}}, "You cancelled the invoice payment";
     $mm->respond("plugins/invoice/view", invoice => $invoice);
 }
 
+sub ipn {
+    # This is when Paypal calls us back to tell us about the payment
+    my ($self, $mm) = @_;
+    my $ok = Plack::Response->new(200);
+    my $params = $mm->{req}->parameters;
+    my $frob = $params->{custom};
+    my $paypal = Business::PayPal->new($frob);
+    my ($txnstatus, $reason) = $paypal->ipnvalidate($params);
+    # Load the invoice; $ok doesn't mean *things* are OK, it means we
+    # acknowledge the data Paypal sent us.
+    my ($pp) = Kirin::DB::Paypal->search(magic_frob => $frob) or return $ok;
+    my $invoice = $pp->invoice or return $ok;
+    $pp->status($params->{payment_status});
+    $pp->update;
+    if ($params->{payment_status} eq "Completed" and
+        $params->{payment_gross} eq $invoice->total) {
+        $invoice->paid(1);
+        $invoice->update();
+    } else {
+        Kirin::Utils->email_boss(
+            severity => "warning",
+            customer => $invoice->customer,
+            context  => "trying to pay an invoice",
+            message  => "Something went wrong with the Paypal payment; please check"
+        );
+    }
+    return $ok;
+}
+
+sub return {
+    my ($self, $mm) = @_;
+    my $frob = $mm->{req}->env->{"plack.session"}->get("paypal_frob");
+    $mm->{req}->env->{"plack.session"}->set("paypal_frob", "");
+    my ($pp) = Kirin::DB::Paypal->search(magic_frob => $frob);
+    my $invoice = $pp->invoice;
+    if ($pp->status eq "Completed" and $pp->invoice->paid) {
+        push @{$mm->{messages}}, "Paid with thanks!";
+        $pp->delete;
+    } else { 
+        push @{$mm->{messages}}, "Something went wrong with your payment; we will be in touch with you to help resolve this.";
+    }
+    $mm->respond("plugins/invoice/view", invoice => $invoice);
+
+}
 sub _pay_invoice {
     my ($self, $invoice, $mm) = @_;
     my $paypal = Business::PayPal->new;
