@@ -11,7 +11,7 @@ sub cancel {
     my $frob = $mm->{req}->parameters->{custom};
     my ($pp) = Kirin::DB::Paypal->search(magic_frob => $frob);
     if (!$pp) { # Something's gone weird, return them to their customer page
-        Kirin::Plugin::Customer->view($self, $mm);
+        Kirin::Plugin::Customer->view($mm);
     }
     my $invoice = $pp->invoice;
     $pp->delete;
