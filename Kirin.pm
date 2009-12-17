@@ -32,7 +32,8 @@ sub authenticate {
     my $self = shift;
 
     # Skip authentication if our plugins say we can - Paypal callbacks etc.
-    my (undef, $noun, $verb, @args) = split /\//,  $self->{req}->path;
+    my $path = $self->{req}->path; $path =~ s/^\/+//;
+    my ($noun, $verb, @args) = split /\//,  $path;
     $noun =~ s/_(\w)/\U$1/g; my $class = $self->{model_prefix}."::".ucfirst($noun);
     return if UNIVERSAL::isa($class, "Kirin::Plugin") 
                 and { map {$_=>1} $class->_skip_auth()}->{$noun};
