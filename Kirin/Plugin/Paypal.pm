@@ -28,23 +28,30 @@ sub ipn {
     my $frob = $params->{custom};
     my $paypal = Business::PayPal->new(id => $frob);
     my ($txnstatus, $reason) = $paypal->ipnvalidate($params);
-    # Check  txnstatus!
+    return $ok unless $txnstatus; # Fake 
     # Load the invoice; $ok doesn't mean *things* are OK, it means we
     # acknowledge the data Paypal sent us.
     my ($pp) = Kirin::DB::Paypal->search(magic_frob => $frob) or return $ok;
     my $invoice = $pp->invoice or return $ok;
     $pp->status($params->{payment_status});
     $pp->update;
-    if ($params->{payment_status} eq "Completed" and
+    if ($params->{payment_status} =~ /Completed/ and
         $params->{payment_gross} eq $invoice->total) {
         $invoice->paid(1);
         $invoice->update();
+    } elsif ($params->{payment_status} eq "Pending") { 
+        Kirin::Utils->email_boss(
+            severity => "info",
+            customer => $invoice->customer,
+            context  => "trying to pay an invoice",
+            message  => "Payment needs to be accepted via the Paypal web site"
+        );
     } else {
         Kirin::Utils->email_boss(
             severity => "warning",
             customer => $invoice->customer,
             context  => "trying to pay an invoice",
-            message  => "Something went wrong with the Paypal payment; please check"
+            message  => "Something went wrong with the Paypal payment; please check; status is ".$params->{payment_status}
         );
     }
     return $ok;
@@ -58,6 +65,9 @@ sub return {
     my $invoice = $pp->invoice;
     if ($pp->status eq "Completed" and $pp->invoice->paid) {
         push @{$mm->{messages}}, "Paid with thanks!";
+        $pp->delete;
+    } elsif ($pp->status eq "Pending") { 
+        push @{$mm->{messages}}, "Your payment is awaiting clearance";
         $pp->delete;
     } else { 
         push @{$mm->{messages}}, "Something went wrong with your payment; we will be in touch with you to help resolve this.";
