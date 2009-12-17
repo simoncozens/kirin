@@ -1,6 +1,6 @@
 package Kirin::Plugin::Paypal;
 use base 'Kirin::Plugin';
-use Business::Paypal;
+use Business::PayPal;
 
 sub _skip_auth { "ipn" }
 
