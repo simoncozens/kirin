@@ -39,6 +39,21 @@ sub dispatch_all_unissued {
     $_->dispatch for shift->search(issued => 0);
 }
 
+sub payment_form {
+    my ($self, $mm) = @_;
+    # Find us a payment processor
+    my $pp = Kirin->args->{payment_processor};
+    if (!$pp) { ($pp) = grep { $_->can("_pay_invoice") } Kirin->plugins }
+    if (!$pp) {
+        Kirin::Utils->email_boss(
+            severity => "warning", 
+            message => "Can't find a payment processor for invoices"
+        );
+        return;
+    }
+    return $pp->_pay_invoice($self, $mm);
+}
+
 sub dispatch {
     my $self = shift;
     return if $self->issued() or $self->total <= 0;
