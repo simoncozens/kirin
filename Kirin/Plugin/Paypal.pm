@@ -45,7 +45,7 @@ sub _pay_invoice {
     my $pp = Kirin::DB::Paypal->find_or_create({ invoice => $invoice });   
     $pp->magic_frob($paypal->id);
     $pp->update();
-    if (TESTING) { $button => s{www.paypal.com}{www.sandbox.paypal.com}g; }
+    if (TESTING) { $button =~ s{www.paypal.com}{www.sandbox.paypal.com}g; }
     return $button;
 }
 
