@@ -8,7 +8,7 @@ sub email_boss {
     # the template failed...
     my $email = <<EOF;
 From: Kirin Domain Management System <kirin\@localhost>
-To: @{[$boss->forename, " ", $boss->surname, " <", $boss->email,">"]} 
+To: @{[$boss->forename. " ". $boss->surname. " <". $boss->email.">"]} 
 Subject: [$args{severity}] Problem with Kirin
 
 While Kirin was $args{context} an error occured:
