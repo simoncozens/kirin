@@ -43,9 +43,9 @@
 [% END%]
 </div>
 <div id="main">
-    [% IF req.messages.size %]
+    [% IF self.messages.size %]
     <ul class="messages">
-        [% FOR m = req.messages %]
+        [% FOR m = self.messages %]
             <li> [%m|html%]</li>
         [% END %]
     </ul>
