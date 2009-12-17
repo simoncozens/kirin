@@ -30,6 +30,13 @@ sub app {
 
 sub authenticate {
     my $self = shift;
+
+    # Skip authentication if our plugins say we can - Paypal callbacks etc.
+    my (undef, $noun, $verb, @args) = split /\//,  $self->{req}->path;
+    $noun =~ s/_(\w)/\U$1/g; my $class = $self->{model_prefix}."::".ucfirst($noun);
+    return if UNIVERSAL::isa($class, "Kirin::Plugin") 
+                and { map {$_=>1} $class->_skip_auth()}->{$noun};
+
     my $sess = $self->{req}->env->{"plack.session"};
     if ($self->{req}->path eq "/logout") { $sess->set("user","") }
     if (!$sess->get("user")) {
