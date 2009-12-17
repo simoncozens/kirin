@@ -75,6 +75,7 @@ sub additional_args {
     if (my $user = $self->{user}) {
         return customers => [ $user->my_customers]
     }
+    return;
 }
 
 sub try_to_login {
