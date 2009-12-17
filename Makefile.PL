@@ -11,6 +11,7 @@ requires    "Plack::Middleware::Session" => 0;
 requires    "Plack::Request" => 0;
 requires    "Plack" => 0;
 requires    "Template" => 0;
+requires    "Template::Plugin::Class" => 0;
 requires    "Class::Data::Inheritable" => 0;
 requires    "Time::Piece" => 0;
 requires    "Authen::Passphrase" => 0;
