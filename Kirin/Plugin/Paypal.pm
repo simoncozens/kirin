@@ -7,14 +7,15 @@ sub _skip_auth { "ipn" }
 
 sub cancel { 
     my ($self, $mm) = @_;
-    # Back to reviewing the invoice;
-    my $frob = $mm->{req}->parameters->{custom};
+    my $frob = $mm->{req}->env->{"plack.session"}->get("paypal_frob");
     my ($pp) = Kirin::DB::Paypal->search(magic_frob => $frob);
     if (!$pp) { # Something's gone weird, return them to their customer page
-        Kirin::Plugin::Customer->view($mm);
+        return Kirin::Plugin::Customer->view($mm);
     }
     my $invoice = $pp->invoice;
     $pp->delete;
+    # Back to reviewing the invoice
+    my $frob = $mm->{req}->env->{"plack.session"}->set("paypal_frob", "");
     push @{$mm->{messages}}, "You cancelled the invoice payment";
     $mm->respond("plugins/invoice/view", invoice => $invoice);
 }
@@ -44,6 +45,7 @@ sub _pay_invoice {
     );
     my $pp = Kirin::DB::Paypal->find_or_create({ invoice => $invoice });   
     $pp->magic_frob($paypal->id);
+    $mm->{req}->env->{"plack.session"}->set("paypal_frob", $paypal->id);
     $pp->update();
     if (TESTING) { $button =~ s{www.paypal.com}{www.sandbox.paypal.com}g; }
     return $button;
