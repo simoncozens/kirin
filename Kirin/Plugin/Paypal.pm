@@ -26,8 +26,9 @@ sub ipn {
     my $ok = Plack::Response->new(200);
     my $params = $mm->{req}->parameters;
     my $frob = $params->{custom};
-    my $paypal = Business::PayPal->new($frob);
+    my $paypal = Business::PayPal->new(id => $frob);
     my ($txnstatus, $reason) = $paypal->ipnvalidate($params);
+    # Check  txnstatus!
     # Load the invoice; $ok doesn't mean *things* are OK, it means we
     # acknowledge the data Paypal sent us.
     my ($pp) = Kirin::DB::Paypal->search(magic_frob => $frob) or return $ok;
