@@ -5,7 +5,6 @@ use strict;
 
 sub view {
     my ($self, $mm, @args) = @_;
-    my $params = $mm->{req}->parameters();
     my $invoice = Kirin::DB::Invoice->retrieve($args[0]);
     $mm->respond("plugins/invoice/view", invoice => $invoice);
 }
