@@ -40,7 +40,8 @@ sub handler {
     my ($self, $req) = @_;
     $self->{req} = $req;
     if (my $resp = $self->authenticate()) { return $resp }
-    my (undef, $noun, $verb, @args) = split /\//,  $req->path;
+    my $path = $req->path; $path =~ s/^\/+//; $req->path($path);
+    my ($noun, $verb, @args) = split /\//,  $path;
     if (!$noun) { ($noun, $verb) = $self->default_nounverb }
     $self->{req}{noun} = $noun;
     $self->{req}{verb} = $verb;
