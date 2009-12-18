@@ -70,6 +70,9 @@ sub authenticate {
 }
 
 sub default_nounverb { qw/customer view/}
+
+sub message { my ($mm, @msg) = @_; push @{$mm->{messages}}, @_ }
+
 sub additional_args {
     my $self = shift;
     if (my $user = $self->{user}) {
