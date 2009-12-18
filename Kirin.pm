@@ -52,7 +52,7 @@ sub authenticate {
         }
     }
     $self->{user} = Kirin::DB::User->retrieve($sess->get("user"));
-    if (my $cid = $self->{req}->parameters()->{cid}) {
+    if (my $cid = $self->param("cid")) {
         my $customer = Kirin::DB::Customer->retrieve($cid);
         warn "XXX ACL check here";
         # XXX ACL check here
@@ -80,10 +80,9 @@ sub additional_args {
 
 sub try_to_login {
     my $self = shift;
-    my $params = $self->{req}->parameters;
     my ($p, $u);
-    unless($u = $params->{username} and $p = $params->{password}) {
-        #push @{$self->{messages}}, "Need to give a username and a password to log in";
+    unless($u = $self->param("username") and $p = $self->param("password")) {
+        push @{$self->{messages}}, "Need to give a username and a password to log in";
         return;
     }
     my ($user) = Kirin::DB::User->search(username => $u);
@@ -107,14 +106,15 @@ sub try_to_login {
 sub try_to_add_new_user {
     # XXX Check captcha
     my $self = shift;
-    my $params = $self->{req}->parameters();
+    my ($u, $p);
+    return unless $u = $self->param("username") 
+              and $p = $self->param("password");
     # XXX message
-    return unless $params->{username} and $params->{password};
     my $user  = Kirin::DB::User->create({ 
-        username => $params->{username},
+        username => $u,
         password => Authen::Passphrase::MD5Crypt->new(
             salt_random => 1,
-            passphrase => $params->{password}
+            passphrase => $p
         )->as_crypt
     });
     return unless $user; # Already exists - XXX add message to that effect

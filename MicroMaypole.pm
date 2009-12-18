@@ -60,6 +60,8 @@ sub handler {
 
 sub additional_args {}
 
+sub param { my ($self, $name) = @_; $self->{req}->parameters->{$name}; }
+
 sub respond {
     my ($self, $template, @args) = @_;
     my $out;
