@@ -71,7 +71,7 @@ sub authenticate {
 
 sub default_nounverb { qw/customer view/}
 
-sub message { my ($mm, @msg) = @_; push @{$mm->{messages}}, @_ }
+sub message { my ($mm, @msg) = @_; push @{$mm->{messages}}, @msg }
 
 sub additional_args {
     my $self = shift;
