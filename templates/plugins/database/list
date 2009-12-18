@@ -1,0 +1,33 @@
+
+<h2>Your databases</h2>
+
+[% MACRO  add_form BLOCK %]
+<form method="post">
+    <input type="hidden" name="adding" value="1">
+    <p>Database name: <input name="dbname"></p>
+    <p>Password: <input name="pass1" type="password"></p>
+    <p>Confirm password: <input name="pass2" type="password"></p>
+    <input type="submit">
+</form>
+[% END %]
+
+[% IF databases.size > 0 %]
+
+<table>
+<tr><th>Name</th><th>Username</th><th>Password</th></tr>
+    [% FOR d = databases %]
+        <tr><td>[%d.name     |html%]</td>
+            <td>[%d.username | html %]</td>
+            <td>[%d.password | html %]</td>
+            <td><a href="/database/delete/[%d.id%]">x</a></td>
+        </tr>
+    [% END %]
+</table>
+[% ELSE; IF addable %]
+<p>You don't seem to have any databases; perhaps you'd like to add one:</p>
+[% add_form %]
+[% ELSE %]
+<p>Your account does not allow you to add any databases; perhaps you'd
+like to <a href="/package/list">upgrade</p> your account.
+[% END; END %]
+

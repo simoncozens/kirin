@@ -64,7 +64,7 @@ sub delete {
         return $self->list($mm);
     }
     if (!$mm->param("confirmdrop")) {
-        return $mm->respond("plugins/database/confirmdrop", did => $id);
+        return $mm->respond("plugins/database/confirmdrop", database => $db);
     }
     if (!$db->drop_on_backend) {
 

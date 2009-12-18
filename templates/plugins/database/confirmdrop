@@ -1,0 +1,12 @@
+<h2> Dropping a database is a very dangerous thing to do! </h2>
+
+<p> Are you sure you want to completely delete database
+[%database.name|html%]? </p>
+<form method="post">
+   <input type="hidden" value="1" name="confirmdrop">
+   <input type="submit" value="Delete It!">
+</form>
+<form action="/database/list">
+   <input type="submit" value="Actually no.">
+</form>
+
