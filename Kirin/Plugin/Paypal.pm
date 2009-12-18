@@ -16,7 +16,7 @@ sub cancel {
     $pp->delete;
     # Back to reviewing the invoice
     $mm->{req}->env->{"plack.session"}->set("paypal_frob", "");
-    push @{$mm->{messages}}, "You cancelled the invoice payment";
+    $mm->message("You cancelled the invoice payment");
     $mm->respond("plugins/invoice/view", invoice => $invoice);
 }
 
@@ -64,13 +64,13 @@ sub return {
     my ($pp) = Kirin::DB::Paypal->search(magic_frob => $frob);
     my $invoice = $pp->invoice;
     if ($pp->status eq "Completed" and $pp->invoice->paid) {
-        push @{$mm->{messages}}, "Paid with thanks!";
+        $mm->message("Paid with thanks!");
         $pp->delete;
     } elsif ($pp->status eq "Pending") { 
-        push @{$mm->{messages}}, "Your payment is awaiting clearance";
+        $mm->message("Your payment is awaiting clearance");
         $pp->delete;
     } else { 
-        push @{$mm->{messages}}, "Something went wrong with your payment; we will be in touch with you to help resolve this.";
+        $mm->message("Something went wrong with your payment; we will be in touch with you to help resolve this.");
     }
     $mm->respond("plugins/invoice/view", invoice => $invoice);
 

@@ -85,24 +85,24 @@ sub try_to_login {
     my $self = shift;
     my ($p, $u);
     unless($u = $self->param("username") and $p = $self->param("password")) {
-        push @{$self->{messages}}, "Need to give a username and a password to log in";
+        $self->message("Need to give a username and a password to log in");
         return;
     }
     my ($user) = Kirin::DB::User->search(username => $u);
     if (!$user) {
         # Don't leak more information than necessary
-        push @{$self->{messages}}, "Username or password incorrect";
+        $self->message("Username or password incorrect");
         return;
     }
     my $real = Authen::Passphrase->from_crypt($user->password);
     if ($real->match($p)) {
-        push @{$self->{messages}}, "Login successful";
+        $self->message("Login successful");
         $self->{req}->env->{"plack.session"}->set("user" => $user->id);
         $self->{req}->env->{"plack.session"}->set("customer" => "");
         # This corrects a subtle bug if we've been logged in as someone else
         return 1;
     }
-    push @{$self->{messages}}, "Username or password incorrect";
+    $self->message("Username or password incorrect");
     return 0;
 }
 
@@ -110,17 +110,18 @@ sub try_to_add_new_user {
     # XXX Check captcha
     my $self = shift;
     my ($u, $p);
-    return unless $u = $self->param("username") 
-              and $p = $self->param("password");
-    # XXX message
-    my $user  = Kirin::DB::User->create({ 
+    $self->message("Need to give a username and a password to register"), return
+        unless $u = $self->param("username") 
+           and $p = $self->param("password");
+    my $user  = eval { Kirin::DB::User->create({ 
         username => $u,
         password => Authen::Passphrase::MD5Crypt->new(
             salt_random => 1,
             passphrase => $p
         )->as_crypt
-    });
-    return unless $user; # Already exists - XXX add message to that effect
+    }) };
+    $self->message("That username has already been taken"), return
+        unless $user; # Already exists - XXX add unique constraint to DB
     $self->{req}->env->{"plack.session"}->set("user" => $user->id);
     $self->{req}->env->{"plack.session"}->set("customer" => "");
     return 1;
@@ -128,11 +129,9 @@ sub try_to_add_new_user {
 sub try_to_add_customer {
     my $self = shift;
     my $params = $self->{req}->parameters();
-    # Need at least forename and surname and billing address
-    # No error because JS validation should have caught it anyway so if
-    # we get here the user's being naughty
-    return unless $params->{forename} and $params->{surname} 
-        and $params->{billing_email};
+    $self->message("Need to give a name and billing address (at least) to register"), return
+        unless $params->{forename} and $params->{surname} 
+           and $params->{billing_email};
     # Do more complex validation here if we need it
 
     my $customer = Kirin::DB::Customer->create({

@@ -9,12 +9,12 @@ sub list {
         my $package =  Kirin::DB::Package->retrieve($buy);
         if ($package and $mm->{customer} and
             $mm->{customer}->buy_package($package)) {
-                push @{$mm->{messages}}, "Added ".$package->name." to your account";
+            $mm->message("Added ".$package->name." to your account");
         }
     } elsif (my $cancel = $mm->{req}->params()->{cancelsubscription}) {
         my $sub =  Kirin::DB::Subscription->retrieve($cancel);
         warn "XXX I need an ACL check here";
-        push @{$mm->{messages}}, "Removed ".$sub->package->name." from your account";
+        $mm->message("Removed ".$sub->package->name." from your account");
         $mm->{customer}->cancel_subscription($sub);
 
     }
