@@ -77,7 +77,7 @@ sub buy_package {
     });
 
     # Add a line in the guy's next bill
-    $self->bill_for($subscription, $mm);
+    $self->bill_for($subscription);
     return 1;
 }
 
@@ -104,7 +104,7 @@ sub cancel_subscription {
 }
 
 sub bill_for {
-    my ($customer, $item, $mm) = @_; 
+    my ($customer, $item) = @_; 
     # Ensure we have an open invoice for this customer
     my ($invoice) = Kirin::DB::Invoice->find_or_create(
         customer => $customer,
@@ -123,8 +123,8 @@ sub bill_for {
         $cost = $item->cost;
     } else {
         # Assume it's a hashref for when we're providing services
-        $description = $_->{description};
-        $cost => $_->{cost};
+        $description = $item->{description};
+        $cost = $item->{cost};
     }
     Kirin::DB::Invoicelineitem->create({
         invoice => $invoice,
@@ -132,7 +132,7 @@ sub bill_for {
         cost => $cost,
         subscription => $subscription
     });
-    if ($mm and exists Kirin->args->{send_invoice_now_trigger} and
+    if (exists Kirin->args->{send_invoice_now_trigger} and
         $invoice->total > Kirin->args->{send_invoice_now_trigger}) {
         $invoice->dispatch;
     }

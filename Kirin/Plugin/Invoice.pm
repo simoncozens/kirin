@@ -17,6 +17,22 @@ sub list {
     $mm->respond("plugins/invoice/list", invoices => \@invoices);
 }
 
+sub add_line_item {
+    my ($self, $mm, $action) = @_;
+    if (!$mm->{user}->is_root) {
+        $mm->message("You can't do that!");
+        return $self->list($mm, $action);
+    }
+    my %item = ( description => $mm->param("description"),
+                 cost        => $mm->param("cost") );
+    if (!$item{description} or !$item{cost}) {
+        $mm->message("Need to supply a description and a cost");
+    } else {
+        $mm->{customer}->bill_for(\%item);
+    }
+    return $self->list($mm, $action);
+}
+
 sub _setup_db {
     Kirin::DB::Invoicelineitem->has_a(invoice => "Kirin::DB::Invoice");
     Kirin::DB::Invoicelineitem->has_a(subscription => "Kirin::DB::Subscription");

@@ -16,3 +16,17 @@ Issued ([%i.issuedate%])
 [% END %]
 </table>
 
+[% IF self.user.is_root %]
+<h2> Add a charge to this customer </h2>
+
+<p> You can charge this customer for any one-off or custom work and the
+charge will appear on the next invoice. </p>
+
+<form method="post" action="/invoice/add_line_item">
+<table>
+<tr> <th> Description </th> <td><input name="description"></td>
+<tr> <th> Cost </th>        <td><input name="cost"></td>
+<tr> <td> &nbsp; </td> <td> <input type="submit"> </td>
+</table>
+</form>
+[% END %]
