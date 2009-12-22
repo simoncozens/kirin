@@ -3,6 +3,7 @@ use base 'Kirin::Plugin';
 use constant TESTING => 1;
 use Business::PayPal;
 
+sub exposed_to { 0 }
 sub _skip_auth { "ipn" }
 
 sub cancel { 

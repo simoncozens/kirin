@@ -8,6 +8,7 @@ sub user_name {
 }
 sub default_action { "view" }
 sub _skip_auth { }
+sub exposed_to { 1 }
 
 sub _edit {
     my ($self, $mm, $thing) = @_;
