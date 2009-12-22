@@ -131,3 +131,5 @@ sub _purchase_ssl_cert {
     );
     return $thiscert->{CertID};
 }
+
+1;
