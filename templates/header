@@ -38,7 +38,7 @@
 </div>
 <ul>
     [% FOR i = self.plugins; USE k = Class(i); %]
-    [% IF k.exposed_to(self.user) %] %] <li><a href="/[%k.name%]/[%k.default_action%]">[%k.user_name%]</a> [% END; END %]
+    [% IF k.exposed_to(self.user) %] <li><a href="/[%k.name%]/[%k.default_action%]">[%k.user_name%]</a> [% END; END %]
 </ul>
 [% END%]
 </div>
