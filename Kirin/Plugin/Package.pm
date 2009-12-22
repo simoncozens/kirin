@@ -1,4 +1,5 @@
 package Kirin::Plugin::Package;
+use base 'Kirin::Plugin';
 sub name { "package" }
 sub user_name { "Products" }
 sub default_action { "list" }
