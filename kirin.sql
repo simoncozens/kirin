@@ -77,6 +77,14 @@ CREATE TABLE subscription (
     expires date
 );
 
+CREATE TABLE jobqueue (
+    id integer primary key not null, 
+    customer integer,
+    plugin varchar(255),
+    method varchar(255),
+    parameters text
+
+)
 /* Some dummy data */
 
 INSERT INTO user    values (1, "root", "$1$qbq/wA6Q$C5p.bx1UbNWIu70p8fh18/", 0); /*test*/
