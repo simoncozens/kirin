@@ -1,7 +1,5 @@
 package Kirin::Plugin::Database;
 use constant MAX_USERNAME_LEN => 16;
-use constant INFINITY         => -1;
-use List::Util qw/sum/;
 use strict;
 use base 'Kirin::Plugin';
 sub user_name      { "Databases" }
@@ -86,22 +84,6 @@ sub _handle_cancel_request {
     my ($self, $customer, $service) = @_;
 
     # If we're out of databases, get someone to (carefully) delete them
-}
-
-sub _can_add_more {
-    my ($self, $customer) = @_;
-    my $quota = $self->_quota($customer);
-    return 1 if $quota == INFINITY;
-    return $customer->databases->count < $quota;
-}
-
-sub _quota {
-    my ($self, $customer) = @_;
-    return sum
-        map { $_->parameter == INFINITY ? (return INFINITY) : $_->parameter }
-        grep { $_->plugin eq "database" }
-        map { $_->package->services }
-        $customer->subscriptions;
 }
 
 sub _setup_db {

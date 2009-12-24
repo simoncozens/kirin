@@ -60,14 +60,6 @@ sub _handle_cancel_request {
     return 1;
 }
 
-sub _quota {
-    my ($self, $customer) = @_;
-    return sum map { $_->parameter} 
-    grep { $_->plugin eq "rsync" } 
-    map { $_->package->services } 
-    $customer->subscriptions;
-}
-
 sub _parse_email {
     my ($self, @lines) = @_;
     for (@lines) {

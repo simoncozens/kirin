@@ -1,4 +1,6 @@
 package Kirin::Plugin;
+use List::Util qw/sum/;
+use constant INFINITY => -1;
 use UNIVERSAL::moniker;
 sub name { shift->moniker }
 sub user_name {
@@ -20,4 +22,23 @@ sub _edit {
         $thing->update;
     }
 }
+
+sub _can_add_more {
+    my ($self, $customer) = @_;
+    my $quota = $self->_quota($customer);
+    return 1 if $quota == INFINITY;
+    no strict;
+    my $relation = $self->plural_moniker;
+    return $customer->$relation->count < $quota;
+}
+
+sub _quota {
+    my ($self, $customer) = @_;
+    return sum 
+    map { $_->parameter == INFINITY ? (return INFINITY) : $_->parameter }
+    grep { $_->plugin eq $self->name }
+    map { $_->package->services } 
+    $customer->subscriptions;
+}
+
 1;
