@@ -1,6 +1,7 @@
 package Kirin::Plugin::SSL; 
 use base 'Kirin::Plugin';
 sub user_name { "SSL Certificates" };
+sub default_action { "list" }
 our $debug;
 our $enom;
 use Net::eNom;
@@ -11,7 +12,36 @@ use Carp qw/croak/;
 use Socket qw/inet_ntoa/;
 use Sys::Hostname;
 
-sub setup_db { # Piggyback on this method as it's called when ->args is ready
+sub list {
+    my ($self, $mm) = @_;
+    my @certificates = $mm->{customer}->ssl_certificates;
+    $mm->respond("plugins/ssl/list", certificates => \@certificates,
+        addable => $self->_can_add_more($mm->{customer}));
+}
+
+sub order {
+
+}
+
+sub download {
+    my ($self, $mm, $certid, $part) = @_;
+    my $cert = Kirin::DB::SslCertificate->retrieve($certid);
+    if (!$cert) {
+        $mm->message("That certificate doesn't exist!");
+        return $self->list($mm);
+    } elsif ($cert->customer != $mm->{customer}) { 
+        $mm->message("That certificate isn't yours!");
+        return $self->list($mm);
+    } elsif ($part !~ /^(ksr|key_file|certificate)$/) {
+        return $self->list($mm);
+    }
+    my $response = Plack::Response->new(200);
+    $response->body($cert->part);
+    $response->content_type('text/plain');
+    return $response;
+}
+
+sub _setup_db { # Piggyback on this method as it's called when ->args is ready
     Kirin->args->{$_}
         or die "You need to configure $_ in your Kirin configuration"
         for qw/enom_reseller_username enom_reseller_password/;
@@ -19,6 +49,8 @@ sub setup_db { # Piggyback on this method as it's called when ->args is ready
         username => Kirin->args->{enom_reseller_username},
         password => Kirin->args->{enom_reseller_password},
         test     => 1);
+    Kirin::DB::SslCertificate->has_a(customer => "Kirin::DB::Customer");
+    Kirin::DB::Customer->has_many(ssl_certificates => "Kirin::DB::SslCertificate");
 }
 
 #my ($key, $csr) = make_key_csr("/C=US/O=Disney Corporation/CN=disney.com");
