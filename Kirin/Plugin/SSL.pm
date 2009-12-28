@@ -55,11 +55,11 @@ sub download {
     } elsif ($cert->customer != $mm->{customer}) { 
         $mm->message("That certificate isn't yours!");
         return $self->list($mm);
-    } elsif ($part !~ /^(ksr|key_file|certificate)$/) {
+    } elsif ($part !~ /^(csr|key_file|certificate)$/) {
         return $self->list($mm);
     }
     my $response = Plack::Response->new(200);
-    $response->body($cert->part);
+    $response->body($cert->$part);
     $response->content_type('text/plain');
     return $response;
 }
