@@ -53,18 +53,23 @@ sub order {
 
     for (keys %$params) {
         delete $need{$_};
-        if (/^(Admin|Billing|Tech)(.*)$/) { $request->{$1}{$2} = $params->{$_}; }
+        if (/^(Admin|Billing|Tech)(.*)$/) { 
+            $request->{$1}{$2} = $params->{$_} if $params->{$_}; 
+        }
+        else { $request->{$_} = $params->{$_} } 
     }
     if (keys %need) {
         return $sendthemback->("You need to fill in these fields: " . join ", ", keys %need);
     }
-    my ($key, $csr) = make_key_csr($x509);
+    my ($key, $csr) = _make_key_csr($x509);
+    use Data::Dumper; warn Dumper($request);
     $request->{CSR} = $csr;
-    my ($certid, $status) = eval { purchase_ssl_cert($enom, $request) };
+    my ($certid, $status) = eval { _purchase_ssl_cert($enom, $request) };
     if (!$certid) {
         $mm->message("Something went wrong during processing: $status");
         if ($@) { $mm->message($@) }
-        $mm->respond("plugins/ssl/orderform");
+        return $mm->respond("plugins/ssl/orderform",
+            oldparams => $mm->{req}->parameters);
     }
     $self->list($mm);
     $mm->message("Order was successful");
@@ -152,24 +157,24 @@ sub _purchase_ssl_cert {
     my %args = %{+shift};
     my $ip   = inet_ntoa(scalar gethostbyname(hostname() || 'localhost'));
 
-    croak "You need to pass a certificate signing request"
+    croak "You need to pass a certificate signing request\n"
         unless exists $args{CSR};
-    croak "You need to pass a valid ProductType"
+    croak "You need to pass a valid ProductType\n"
         unless exists $args{ProductType};
     $args{Tech} ||= $args{Billing} ||= $args{Admin} ||
-        croak "You have to pass at least an admin user";
+        croak "You have to pass at least an admin user\n";
     my @fields = qw/FName LName Address1 City
         PostalCode Country Phone EmailAddress/;
 
     my %contactargs;
     for my $type (qw/Tech Billing Admin/) {
         $args{$type}{$_} ||
-            croak "Required parameter \$args{$type}{$_} not supplied"
+            croak "Required parameter \$args{$type}{$_} not supplied\n"
             for @fields;
         $args{$type}{Phone} =~ /\+\d+\.\d+/
-            or croak "Phone number for $_ contact must be in format +CountryCode.PhoneNumber";
+            or croak "Phone number for $_ contact must be in format +CountryCode.PhoneNumber\n";
         $args{$type}{Province} || $args{$type}{State} ||
-            croak "Required parameter \$args{$type}{Province/State} not supplied";
+            croak "Required parameter \$args{$type}{Province/State} not supplied\n";
         $contactargs{$type . $_} = $args{$type}{$_} for keys %{$args{$type}};
     }
 
@@ -183,6 +188,7 @@ sub _purchase_ssl_cert {
     my $insert = $enom->InsertNewOrder(EndUserIP => $ip);
     warn Dumper($insert) if $debug;
     my $orderid = $insert->{OrderID};
+    if ($insert->{errors}) { return (undef, join ". ", @{$insert->{errors}}); }
     return (undef, "No order id") unless $orderid;
 
    # CertGetCerts Retrieve the ID number for this cert, to use in configuring it
@@ -191,7 +197,7 @@ sub _purchase_ssl_cert {
     while (!$thiscert && $attempts) {
         warn "Trying to get certificate again\n" if $debug;
         my @certs = @{$enom->CertGetCerts->{CertGetCerts}{Certs}{Cert}};
-        ($thiscert) = grep { $_->{OrderID} == $orderid } @certs;
+        ($thiscert) = grep { defined $_->{OrderID} && $_->{OrderID} == $orderid } @certs;
         if (!$thiscert) {
             warn "Can't get the certificate we just ordered, $attempts left...";
             sleep 15;
@@ -209,6 +215,7 @@ sub _purchase_ssl_cert {
         CSR           => $args{CSR},
         %contactargs
     );
+    if ($config->{errors}) { return (undef, join ". ", @{$config->{errors}}); }
     my $approver = $config->{CertConfigureCert}{Approver}[0]{ApproverEmail};
     return (undef, "Couldn't configure cert") unless $approver;
 

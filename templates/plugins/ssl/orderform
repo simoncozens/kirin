@@ -1,0 +1,46 @@
+<h2> Order an SSL Certificate </h2>
+
+[% MACRO field(name,custfield) BLOCK %]
+<input name="[%name%]" value="[% oldparams.$name || self.customer.$custfield | html%]">
+[% END %]
+
+<form method="post">
+<input type="hidden" name="ordering" value="1"/>
+
+<h3>Details about the Certificate </h3>
+<p>Domain name: [% field("Domain") %]</p>
+<p>Country code: [% field("CountryCode", "country") %]</p>
+<p>Organisation name: [% field("OrgName", "org") %]</p>
+<p>Certificate type:
+    <select name="ProductType">
+        <option value="Certificate-GeoTrust-QuickSSL">GeoTrust QuickSSL</option>
+    </select>
+<p> X509 details (for advanced users only; otherwise, please leave blank): 
+    <input name="X509">
+</p>
+
+<h3>Administrative Contact</h3>
+[% MACRO ContactForm(type) BLOCK; %]
+<p>First name: [%field( type _ "FName", "forename" )%] </p>
+<p>Surname: [%field( type _ "LName", "surname" )%] </p>
+<p>Organisation: [%field( type _ "OrgName", "org" )%] </p>
+<p>Job Title: [%field( type _ "JobTitle" )%] </p>
+<p>Address 1: [%field( type _ "Address1", "address" )%] </p>
+<p>Address 2: [%field( type _ "Address2")%] </p>
+<p>City: [%field( type _ "City", "town")%] </p>
+<p>State/County: [%field( type _ "Province", "county")%] </p>
+<p>Postal Code: [%field( type _ "PostalCode", "postcode")%] </p>
+<p>Country: [%field( type _ "Country", "country")%] </p>
+<p>Phone: [%field( type _ "Phone", "phone")%] </p>
+<p>Phone extension: [% field (type _ "PhoneExt") %] </p>
+<p>Fax: [% field(type _ "Fax", "fax") %] </p>
+<p>Email address: [% field(type _ "EmailAddress", "email") %]</p>
+[% END %]
+[% ContactForm("Admin") %]
+<h3>Billing Contact</h3>
+[% ContactForm("Billing") %]
+<h3>Technical Contact</h3>
+[% ContactForm("Tech") %]
+
+<input type="submit" name="Order">
+</form>
