@@ -1,0 +1,24 @@
+<h2>Your SSL certificates</h2>
+[% IF certificates.size > 0 %]
+<table>
+<tr><th>Domain name</th><th>Status</th><th>CSR</th><th>Key file</th><th>Certificate</th></tr>
+    [% FOR c = certificates %]
+        <tr><td>[%c.domain     |html%]</td>
+            <td>[%c.cert_status | html %]</td>
+            [% FOR part = [ "csr", "key_file", "certificate" ] %]
+            <td>[% IF c.$part %]
+                <a href="/ssl/download/[%c.id%]/[%part%]">download</a>
+            [% END %]
+            </td>
+            [% END %]
+        </tr>
+    [% END %]
+</table>
+[% ELSE; IF addable %]
+<p>You don't seem to have any certificates; perhaps you'd like to add one:</p>
+[% add_form %]
+[% ELSE %]
+<p>Your account does not allow you to add any certificates; perhaps you'd
+like to <a href="/package/list">upgrade</p> your account.
+[% END; END %]
+
