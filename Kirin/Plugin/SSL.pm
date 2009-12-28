@@ -1,4 +1,4 @@
-package Kirin::Plugin::SSL; 
+package Kirin::Plugin::Ssl; 
 use base 'Kirin::Plugin';
 sub user_name { "SSL Certificates" };
 sub default_action { "list" }
@@ -14,7 +14,7 @@ use Sys::Hostname;
 
 sub list {
     my ($self, $mm) = @_;
-    my @certificates = $mm->{customer}->ssl_certificates;
+    my @certificates = $mm->{customer}->ssls;
     $mm->respond("plugins/ssl/list", certificates => \@certificates,
         addable => $self->_can_add_more($mm->{customer}));
 }
@@ -73,7 +73,7 @@ sub _setup_db { # Piggyback on this method as it's called when ->args is ready
         password => Kirin->args->{enom_reseller_password},
         test     => 1); # XXX
     Kirin::DB::SslCertificate->has_a(customer => "Kirin::DB::Customer");
-    Kirin::DB::Customer->has_many(ssl_certificates => "Kirin::DB::SslCertificate");
+    Kirin::DB::Customer->has_many(ssls => "Kirin::DB::SslCertificate");
 }
 
 #my ($key, $csr) = make_key_csr("/C=US/O=Disney Corporation/CN=disney.com");
