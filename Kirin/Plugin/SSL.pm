@@ -1,6 +1,6 @@
-package Kirin::Plugin::Ssl; 
+package Kirin::Plugin::Ssl;
 use base 'Kirin::Plugin';
-sub user_name { "SSL Certificates" };
+sub user_name      { "SSL Certificates" }
 sub default_action { "list" }
 our $debug;
 our $enom;
@@ -21,26 +21,59 @@ sub list {
 
 sub order {
     my ($self, $mm) = @_;
-    my $request = {};
-    # Load up request from the parameters, checking as we go
+    if (!$self->_can_add_more($mm->{customer})) {
+        $mm->message("You can't order any more SSL certificates; upgrade your account?");
+        return $self->list($mm);
+    }
 
-    return;
-    my $domain;
-    my $x509="/C=$request->{Country}/O=$request->{x}/CN=$domain"; # XXX
+    if (!$mm->param("ordering")) { return $mm->respond("plugins/ssl/orderform"); }
+
+    # Load up request from the parameters, checking as we go
+    my $ok      = 1;
+    my $request = {};
+    my $params  = $mm->{req}->parameters;
+
+    # Don't forget that purchase_ssl_cert actually does a bit of
+    # checking too, we'll use that.
+    my %need = map { $_ => 1 } qw/AdminFName AdminLName AdminAddress1
+        AdminCity AdminCountry AdminPostalCode AdminPhone AdminEmailAddress
+        ProductType /;
+    my $sendthemback = sub {
+        $mm->message(shift);
+        $mm->respond("plugins/ssl/orderform",
+            oldparams => $mm->{req}->parameters);
+    };
+    my $domain = delete $params->{Domain} ||
+        return $sendthemback->("Need to specify a domain name");
+    my $orgname = delete $params->{OrgName} ||
+        return $sendthemback->("Need to specify an organisation name");
+    my $country = delete $params->{CountryCode} ||
+        return $sendthemback->("Need to specify a country code");
+    my $x509 = delete $params->{X509} || "/C=$country/O=$orgname/CN=$domain";
+
+    for (keys %$params) {
+        delete $need{$_};
+        if (/^(Admin|Billing|Tech)(.*)$/) { $request->{$1}{$2} = $params->{$_}; }
+    }
+    if (keys %need) {
+        return $sendthemback->("You need to fill in these fields: " . join ", ", keys %need);
+    }
     my ($key, $csr) = make_key_csr($x509);
-    my ($certid, $status) = purchase_ssl_cert($enom, $request);
+    $request->{CSR} = $csr;
+    my ($certid, $status) = eval { purchase_ssl_cert($enom, $request) };
     if (!$certid) {
-        $mm->message("Something went wrong during $status processing");
-        $mm->respond("plugins/ssl/order");
+        $mm->message("Something went wrong during processing: $status");
+        if ($@) { $mm->message($@) }
+        $mm->respond("plugins/ssl/orderform");
     }
     $self->list($mm);
     $mm->message("Order was successful");
     my $cert = Kirin::DB::SslCertificate->create({
-        customer => $mm->{customer},
-        domain => $domain,
+        customer     => $mm->{customer},
+        domain       => $domain,
         enom_cert_id => $certid,
-        csr => $csr,
-        key_file => $key,
+        csr          => $csr,
+        key_file     => $key,
     });
     $cert->update_from_enom;
     $self->list($mm);
@@ -52,7 +85,7 @@ sub download {
     if (!$cert) {
         $mm->message("That certificate doesn't exist!");
         return $self->list($mm);
-    } elsif ($cert->customer != $mm->{customer}) { 
+    } elsif ($cert->customer != $mm->{customer}) {
         $mm->message("That certificate isn't yours!");
         return $self->list($mm);
     } elsif ($part !~ /^(csr|key_file|certificate)$/) {
@@ -64,14 +97,14 @@ sub download {
     return $response;
 }
 
-sub _setup_db { # Piggyback on this method as it's called when ->args is ready
+sub _setup_db {   # Piggyback on this method as it's called when ->args is ready
     Kirin->args->{$_}
         || die "You need to configure $_ in your Kirin configuration"
         for qw/enom_reseller_username enom_reseller_password/;
     $enom = Net::eNom->new(
         username => Kirin->args->{enom_reseller_username},
         password => Kirin->args->{enom_reseller_password},
-        test     => 1); # XXX
+        test     => 1);                                      # XXX
     Kirin::DB::SslCertificate->has_a(customer => "Kirin::DB::Customer");
     Kirin::DB::Customer->has_many(ssls => "Kirin::DB::SslCertificate");
 }
@@ -110,7 +143,7 @@ sub _make_key_csr {
     return ($key, $csr);
 }
 
-# Purchase a certificate from enom; returns certid if successful, 
+# Purchase a certificate from enom; returns certid if successful,
 # (undef, $where) otherwise, where $where tells you what stage the
 # request got to.
 
@@ -125,7 +158,7 @@ sub _purchase_ssl_cert {
         unless exists $args{ProductType};
     $args{Tech} ||= $args{Billing} ||= $args{Admin} ||
         croak "You have to pass at least an admin user";
-    my @fields = qw/FName LName Address1 City Country
+    my @fields = qw/FName LName Address1 City
         PostalCode Country Phone EmailAddress/;
 
     my %contactargs;
@@ -137,11 +170,11 @@ sub _purchase_ssl_cert {
             or croak "Phone number for $_ contact must be in format +CountryCode.PhoneNumber";
         $args{$type}{Province} || $args{$type}{State} ||
             croak "Required parameter \$args{$type}{Province/State} not supplied";
-        $contactargs{$type.$_} = $args{$type}{$_} for keys %{$args{$type}};
+        $contactargs{$type . $_} = $args{$type}{$_} for keys %{$args{$type}};
     }
 
     my $cart = $enom->AddToCart(
-        EndUserIP => $ip,
+        EndUserIP   => $ip,
         ProductType => $args{ProductType},
         Quantity    => 1,
         ClearItems  => 1
@@ -152,7 +185,7 @@ sub _purchase_ssl_cert {
     my $orderid = $insert->{OrderID};
     return (undef, "No order id") unless $orderid;
 
-    # CertGetCerts Retrieve the ID number for this cert, to use in configuring it
+   # CertGetCerts Retrieve the ID number for this cert, to use in configuring it
     my $thiscert;
     my $attempts = 4;
     while (!$thiscert && $attempts) {
@@ -161,11 +194,11 @@ sub _purchase_ssl_cert {
         ($thiscert) = grep { $_->{OrderID} == $orderid } @certs;
         if (!$thiscert) {
             warn "Can't get the certificate we just ordered, $attempts left...";
-            sleep 15; 
+            sleep 15;
             $attempts--
         }
     }
-    return (undef, "Couldn't find the certificate we just ordered") 
+    return (undef, "Couldn't find the certificate we just ordered")
         unless $thiscert;
 
    #    CertConfigureCert Obtain information from customer to configure the cert
@@ -200,6 +233,5 @@ sub update_from_enom {
     }
     $self->update;
 }
-
 
 1;
