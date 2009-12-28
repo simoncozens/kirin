@@ -20,7 +20,28 @@ sub list {
 }
 
 sub order {
+    my ($self, $mm) = @_;
+    my $request = {};
+    # Load up request from the parameters, checking as we go
 
+    return;
+    my $x509="/C=$request->{Country}/O=$request->{}/CN=XXX"; # XXX
+    my ($key, $csr) = make_key_csr($x509);
+    my ($certid, $status) = purchase_ssl_cert($enom, $request);
+    if (!$certid) {
+        $mm->message("Something went wrong during $status processing");
+        $mm->respond("plugins/ssl/order");
+    }
+    $self->list($mm);
+    $mm->message("Order was successful");
+    my $cert = Kirin::DB::SslCertificate->create({
+        customer => $mm->{customer},
+        enom_cert_id => $certid,
+        csr => $csr,
+        key_file => $key,
+    });
+    $cert->update_from_enom;
+    $self->list($mm);
 }
 
 sub download {
@@ -163,5 +184,20 @@ sub _purchase_ssl_cert {
     );
     return $thiscert->{CertID};
 }
+
+package Kirin::DB::SslCertificate;
+
+sub update_from_enom {
+    my $self = shift;
+    my $r = $enom->CertGetCertDetail(CertID => $self->enom_cert_id);
+    return unless $r->{CertGetCertDetail};
+    $self->status($r->{CertGetCertDetail}{CertStatus});
+    $self->csr($r->{CertGetCertDetail}{CSR});
+    if (!$self->certificate) {
+        $self->certificate($r->{CertGetCertDetail}{SSLCertificate});
+    }
+    $self->update;
+}
+
 
 1;
