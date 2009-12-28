@@ -14,9 +14,12 @@
         </tr>
     [% END %]
 </table>
+    [% IF addable %]
+    <p><a href="/ssl/order">Order another certificate</a>.</p>
+    [% END %]
 [% ELSE; IF addable %]
-<p>You don't seem to have any certificates; perhaps you'd like to add one:</p>
-[% add_form %]
+<p>You don't seem to have any certificates; perhaps you'd like to <a
+href="/ssl/order"> order one</a>.</p>
 [% ELSE %]
 <p>Your account does not allow you to add any certificates; perhaps you'd
 like to <a href="/package/list">upgrade</p> your account.
