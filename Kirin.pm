@@ -14,8 +14,8 @@ use Plack::Builder;
 
 sub app {
     my ($self, %args) = @_;
-    Kirin::DB->setup_db($args{dsn});
     Kirin->args(\%args);
+    Kirin::DB->setup_db($args{dsn});
 
     builder {
       enable 'Session', store => 'File';
