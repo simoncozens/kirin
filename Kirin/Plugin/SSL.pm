@@ -25,7 +25,8 @@ sub order {
     # Load up request from the parameters, checking as we go
 
     return;
-    my $x509="/C=$request->{Country}/O=$request->{}/CN=XXX"; # XXX
+    my $domain;
+    my $x509="/C=$request->{Country}/O=$request->{x}/CN=$domain"; # XXX
     my ($key, $csr) = make_key_csr($x509);
     my ($certid, $status) = purchase_ssl_cert($enom, $request);
     if (!$certid) {
@@ -36,6 +37,7 @@ sub order {
     $mm->message("Order was successful");
     my $cert = Kirin::DB::SslCertificate->create({
         customer => $mm->{customer},
+        domain => $domain,
         enom_cert_id => $certid,
         csr => $csr,
         key_file => $key,
@@ -64,12 +66,12 @@ sub download {
 
 sub _setup_db { # Piggyback on this method as it's called when ->args is ready
     Kirin->args->{$_}
-        or die "You need to configure $_ in your Kirin configuration"
+        || die "You need to configure $_ in your Kirin configuration"
         for qw/enom_reseller_username enom_reseller_password/;
     $enom = Net::eNom->new(
         username => Kirin->args->{enom_reseller_username},
         password => Kirin->args->{enom_reseller_password},
-        test     => 1);
+        test     => 1); # XXX
     Kirin::DB::SslCertificate->has_a(customer => "Kirin::DB::Customer");
     Kirin::DB::Customer->has_many(ssl_certificates => "Kirin::DB::SslCertificate");
 }
@@ -191,7 +193,7 @@ sub update_from_enom {
     my $self = shift;
     my $r = $enom->CertGetCertDetail(CertID => $self->enom_cert_id);
     return unless $r->{CertGetCertDetail};
-    $self->status($r->{CertGetCertDetail}{CertStatus});
+    $self->cert_status($r->{CertGetCertDetail}{CertStatus});
     $self->csr($r->{CertGetCertDetail}{CSR});
     if (!$self->certificate) {
         $self->certificate($r->{CertGetCertDetail}{SSLCertificate});
