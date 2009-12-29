@@ -11,4 +11,9 @@ sub list {
     );
 }
 
+sub _setup_db {
+    Kirin::DB::Domain->has_a(customer => "Kirin::DB::Customer");
+    Kirin::DB::Customer->has_many(domains => "Kirin::DB::Domain");
+}
+
 1;
