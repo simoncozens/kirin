@@ -5,8 +5,6 @@ use strict;
 
 sub edit {
     my ($self, $mm, @args) = @_;
-    # XXX ACL Check
-    warn "I need to add an ACL check here";
     my $customer = $mm->{customer};
     $self->_edit($mm, $customer);
     $mm->respond("plugins/customer/edit", customer => $customer);
@@ -38,8 +36,6 @@ sub add {
 
 sub view {
     my ($self, $mm) = @_;
-    # XXX ACL Check
-    warn "I need to add an ACL check here";
     my $customer = $mm->{customer};
     $mm->respond("plugins/customer/view", customer => $customer);
 }
