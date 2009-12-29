@@ -3,7 +3,9 @@
 
 <ul>
 [% FOR d = domains %]
-    <li> <a href="/[%action%]/[%d.id%]">[%d.domainname%]</li>
+    <li> [%d.domainname%]
+    <a href="/amavis/list/[%d.id%]">Mail filtering</a>
+    </li>
 [% END %]
     
 </ul>

@@ -1,6 +1,7 @@
 package Kirin::Plugin::Domain;
 use strict;
 use base 'Kirin::Plugin';
+sub default_action { "list" }
 
 sub user_name { "Domains"               } 
 
