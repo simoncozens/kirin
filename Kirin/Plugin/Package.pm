@@ -14,10 +14,12 @@ sub list {
         }
     } elsif (my $cancel = $mm->{req}->params()->{cancelsubscription}) {
         my $sub =  Kirin::DB::Subscription->retrieve($cancel);
-        warn "XXX I need an ACL check here";
-        $mm->message("Removed ".$sub->package->name." from your account");
-        $mm->{customer}->cancel_subscription($sub);
-
+        if (!$sub->customer != $mm->{customer}) {
+            $mm->message("That's not your subscription!");
+        } else {
+            $mm->message("Removed ".$sub->package->name." from your account");
+            $mm->{customer}->cancel_subscription($sub);
+        }
     }
     my @packages = Kirin::DB::Package->retrieve_all;
     my %categories = map { $_->category => 1 } @packages;
