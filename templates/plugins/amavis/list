@@ -1,0 +1,34 @@
+<h3> Mail filtering rules for domain [% domain.domainname %]</h3>
+
+<table>
+<tr><th>Address</th> <th> Spam filtering? </th> <th>Virus
+filtering?</th> <th>Modify subject</th><th> Tag level </th> <th>
+Mark-as-spam level</th><th>Kill level</th></tr>
+[% FOR r = rules %]
+<tr>
+<form method="post"><input type="hidden" name="editing" value="1">
+<td> [% r.policy_name %] <input type="hidden" name="localpart" value="[%r.policy_name.replace('@.*','')%]"></td>
+<td> <input type="checkbox" name="filterspam" [% 'checked="yes"' IF r.spam_lover == "N" %]></td>
+<td> <input type="checkbox" name="filtervirus" [% 'checked="yes"' IF r.virus_lover == "N" %]></td>
+<td> <input type="checkbox" name="modifysubject" [% 'checked="yes"' IF r.spam_modifies_subject == "Y" %]></td>
+<td> <input name="taglevel" value="[%r.spam_tag_level |html%]"></td>
+<td> <input name="tag2level" value="[%r.spam_tag2_level |html%]"></td>
+<td> <input name="killlevel" value="[%r.spam_kill_level |html%]"></td>
+<td> <input type="submit" value="Edit Rule"></td>
+</form>
+</tr>
+[% END %]
+
+<tr>
+<form method="post"><input type="hidden" name="editing" value="1">
+<td> <input name="localpart">@[%domain.domainname%] </td>
+<td> <input type="checkbox" name="filterspam">
+<td> <input type="checkbox" name="filtervirus">
+<td> <input type="checkbox" name="modifysubject">
+<td> <input name="taglevel" value="999"></td>
+<td> <input name="tag2level" value="999"></td>
+<td> <input name="killlevel" value="999"></td>
+<td> <input type="submit" value="Add Rule"></td>
+</form>
+</tr>
+</table>
