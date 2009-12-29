@@ -5,5 +5,6 @@ Kirin->app(
     base => "http://localhost:5000/",
     paypal_recipient => 'simon@simon-cozens.org',
     enom_reseller_username => "resellid",
-    enom_reseller_password => "resellpw"
+    enom_reseller_password => "resellpw",
+    amavis_dsn => "dbi:SQLite:amavis.db"
 );
