@@ -113,7 +113,7 @@ sub _setup_db {
 
 package Kirin::DB::Paypal;
 sub sql {q/
-CREATE TABLE paypal (
+CREATE TABLE IF NOT EXISTS paypal (
     id integer not null primary key,
     invoice integer,
     magic_frob varchar(255),
