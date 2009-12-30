@@ -6,5 +6,6 @@ Kirin->app(
     paypal_recipient => 'simon@simon-cozens.org',
     enom_reseller_username => "resellid",
     enom_reseller_password => "resellpw",
-    amavis_dsn => "dbi:SQLite:amavis.db"
+    amavis_dsn => "dbi:SQLite:amavis.db",
+    primary_dns_server => "ns1.mythic-beasts.com",
 );

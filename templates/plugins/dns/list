@@ -1,0 +1,55 @@
+<h3> DNS entries for domain [% domain.domainname %]</h3>
+
+[% IF locally_hosted %]
+
+<table>
+<tr><th>Domain name</th> 
+    <th> Record type </th> 
+    <th>Priority</th>
+    <th>Time to live</th>
+    <th> Data </th> 
+</tr>
+
+[% FOR r = records %]
+<tr>
+<form method="post"><input type="hidden" name="editing" value="1">
+<input type="hidden" name="name" value="[%r.name|html%]">
+<td> [% r.name |html%] <input type="hidden" name="id" value="[%r.id%]"></td>
+<td> <select name="type">
+[% FOR t = supported_types %]
+   <option value="[%t|html%]" [% 'selected="1"' IF r.type == t %]>[%t|html%]</option> 
+[% END %]
+</select></td>
+<td> <input name="priority" value="[%r.priority|html%]" size="2"></td>
+<td> <input name="ttl" value="[%r.ttl|html%]" size="6"></td>
+<td> <input name="data" value="[%r.data|html%]"></td>
+<td> <input type="submit" value="Edit Rule"></td>
+<td> <input name="deleting" type="submit" value="Delete Rule"></td>
+</form>
+</tr>
+[% END %]
+
+<tr>
+<form method="post"><input type="hidden" name="editing" value="1">
+<td> <input name="name" value=".[%domain.domainname |html%]"></td>
+<td> <select name="type">
+[% FOR t = supported_types %]
+   <option value="[%t|html%]" [% 'selected="1"' IF t == "A" %]>[%t|html%]</option> 
+[% END %]
+</select></td>
+
+<td> <input name="priority" size="2"></td>
+<td> <input name="ttl" value="[%default_ttl%]" size="6"></td>
+<td> <input name="data"></td>
+<td> <input type="submit" value="Add Rule"></td>
+</form>
+</tr>
+</table>
+
+[% ELSE %]
+
+<p> We don't host the DNS entries for this domain; the domain is hosted
+at <code>[%whohosts|html%]</code> instead. Please contact their
+administrators to update the DNS entries. </p>
+
+[% END %]

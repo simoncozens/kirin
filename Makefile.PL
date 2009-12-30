@@ -20,6 +20,8 @@ requires    "Email::Send" => 0;
 requires    "Class::DBI::SQLite" => 0;
 requires    "Net::SSLeay" => 0;
 recommends  "Business::PayPal" => 0;
+recommends  "Net::DNS" => 0;
+recommends  "Regexp::Common::dns" => 0;
 recommends  "Net::eNom" => 0.3;
 
 auto_install;
