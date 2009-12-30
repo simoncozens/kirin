@@ -33,17 +33,11 @@ my %validators = (
 
 sub list {
     my ($self, $mm, $domain) = @_;
-    $domain = Kirin::DB::Domain->retrieve($domain);
-    if (!$domain) {
-        $mm->message("You need to select a domain first");
-        return Kirin::Plugin::Domain->list($mm);
-    }
-    if ($domain->customer != $mm->{customer}) {
-        $mm->message("That's not your domain!");
-        return Kirin::Plugin::Domain->list($mm);
-    }
+    my $r;
+    ($domain, $r) = Kirin::DB::Domain->web_retrieve($mm, $domain);
+    return $r if $r;
 
-    my ($local, $whohosts) = $self->_is_hosted_by($domain => "NS", $ourprimary);
+    my ($local, $whohosts) = $self->_is_hosted_by($domain->domainname => "NS", $ourprimary);
     if ($mm->param("editing") and my $record = $self->_validate($domain, $mm, $local)) {
         my $action;
         if ($mm->param("deleting")) {
@@ -57,12 +51,7 @@ sub list {
         }
 
         # Add a todo item to kick the backend
-        Kirin::DB::Jobqueue->find_or_create({
-            customer   => $mm->{customer},
-            plugin     => "dns",
-            method     => "update_server",
-            parameters => $domain->id
-        });
+        $self->_add_todo($mm, update_server => $domain->id);
         $mm->message("Your record has been $action and will be updated on the server shortly");
     }
     my @records = $local ? $domain->dns_records : ();

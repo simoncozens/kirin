@@ -26,6 +26,20 @@ sub _setup_db {
 
 package Kirin::DB::Domain;
 
+sub web_retrieve {
+    my ($self, $mm, $id) = @_;
+    my $domain = $self->retrieve($id);
+    if (!$domain) {
+        $mm->message("You need to select a domain first");
+        return (undef, Kirin::Plugin::Domain->list($mm));
+    }
+    if ($domain->customer != $mm->{customer}) {
+        $mm->message("That's not your domain!");
+        return (undef, Kirin::Plugin::Domain->list($mm));
+    }
+    return ($domain, undef);
+}
+
 sub sql {q/
 CREATE TABLE IF NOT EXISTS domain (
     id integer primary key not null,
