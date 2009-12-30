@@ -1,0 +1,44 @@
+<h3> POP boxes for domain [% domain.domainname %]</h3>
+
+[% IF locally_hosted %]
+
+<table>
+<tr><th>Username</th> 
+    <th>Password </th> 
+    <th>Confirm Password </th> 
+</tr>
+
+[% FOR r = mailboxes %]
+<tr>
+<form method="post"><input type="hidden" name="editing" value="1">
+<input type="hidden" name="name" value="[%r.name|html%]">
+<td> [% r.name |html%] <input type="hidden" name="id" value="[%r.id%]"></td>
+<td> <input type="password" name="pass1" value="[%r.password|html%]"> </td>
+<td> <input type="password" name="pass2" value="[%r.password|html%]"> </td>
+<td> <input type="submit" value="Change Password"></td>
+<td> <input name="deleting" type="submit" value="Delete Mailbox"></td>
+</form>
+</tr>
+[% END %]
+
+<tr>
+<form method="post"><input type="hidden" name="editing" value="1">
+<td> <input name="name" value=""></td>
+<td> <input type="password" name="pass1" value="[%r.password|html%]"> </td>
+<td> <input type="password" name="pass2" value="[%r.password|html%]"> </td>
+<td> <input type="submit" value="Add Mailbox"></td>
+</form>
+</tr>
+</table>
+
+[% ELSE %]
+
+[% IF whohosts %]
+<p> We don't host email entries for this domain; mail for this system is
+handled by <code>[%whohosts|html%]</code> instead. Please contact their
+administrators. </p>
+[% ELSE %]
+<p> That domain isn't configured to receive mail. </p>
+[% END %]
+
+[% END %]
