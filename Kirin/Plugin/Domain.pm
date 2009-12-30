@@ -18,4 +18,14 @@ sub _setup_db {
     Kirin::DB::Customer->has_many(domains => "Kirin::DB::Domain");
 }
 
+package Kirin::DB::Domain;
+
+sub sql {q/
+CREATE TABLE IF NOT EXISTS domain (
+    id integer primary key not null,
+    customer integer,
+    domainname varchar(255)
+);
+/}
+
 1;

@@ -8,13 +8,25 @@ use Kirin::DB;
 use Kirin::Utils;
 use Authen::Passphrase;
 use Authen::Passphrase::MD5Crypt;
-use Module::Pluggable require=>1;
-our %map = map { $_->name => $_ } Kirin->plugins();
+require Module::Pluggable;
+our %map;
 use Plack::Builder;
+use UNIVERSAL::require;
 
 sub app {
     my ($self, %args) = @_;
     Kirin->args(\%args);
+    my %plug_options;
+    if ($args{plugins}) { 
+        $plug_options{only} = $args{plugins};
+    } elsif ($args{not_plugins}) {
+        $plug_options{except} = $args{not_plugins};
+    }
+    Module::Pluggable->import(%plug_options);
+    # require => 1 in M::P doesn't work with except
+    %map = map { $_->require or die "Couldn't load Kirin plugin $_: $@\n"; 
+        $_->name => $_ } Kirin->plugins();
+    return if $Kirin::just_configuring;
     Kirin::DB->setup_db($args{dsn});
 
     builder {

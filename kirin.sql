@@ -86,11 +86,6 @@ CREATE TABLE jobqueue (
 
 )
 
-CREATE TABLE domain (
-    id integer primary key not null, 
-    customer integer,
-    domainname varchar(255)
-);
 /* Some dummy data */
 
 INSERT INTO user    values (1, "root", "$1$qbq/wA6Q$C5p.bx1UbNWIu70p8fh18/", 0); /*test*/

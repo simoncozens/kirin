@@ -152,4 +152,13 @@ sub drop_on_backend {
     return 1;
 }
 
+sub sql {q/
+CREATE TABLE IF NOT EXISTS database (
+    id integer primary key not null,
+    customer integer,
+    name varchar(255),
+    username varchar(16),
+    password varchar(255)
+);
+/}
 1;

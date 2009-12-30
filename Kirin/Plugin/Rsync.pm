@@ -86,4 +86,16 @@ WHERE customer IS NULL
 OR customer = 0
 });
 }
+
+package Kirin::DB::Rsync;
+
+sub sql{q/
+CREATE TABLE IF NOT EXISTS rsync ( id integer primary key not null,
+    customer integer,
+    login integer,
+    password varchar(40) NOT NULL, 
+    host varchar(40) NOT NULL, 
+    last_used varchar(20)
+);
+/}
 1;

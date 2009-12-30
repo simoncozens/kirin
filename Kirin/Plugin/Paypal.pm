@@ -110,4 +110,15 @@ sub _pay_invoice {
 sub _setup_db {
     Kirin::DB::Paypal->has_a(invoice => "Kirin::DB::Invoice");
 }
+
+package Kirin::DB::Paypal;
+sub sql {q/
+CREATE TABLE paypal (
+    id integer not null primary key,
+    invoice integer,
+    magic_frob varchar(255),
+    status varchar(255)
+);
+/}
+
 1;
