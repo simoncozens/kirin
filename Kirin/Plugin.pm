@@ -2,6 +2,7 @@ package Kirin::Plugin;
 use List::Util qw/sum/;
 use constant INFINITY => -1;
 use UNIVERSAL::moniker;
+use Net::DNS qw/rrsort/;
 sub name { shift->moniker }
 sub user_name {
     my $name = shift->name;
@@ -61,6 +62,21 @@ sub _ensure_table {
     $dbh->do($db_class->sql) or die $dbh->errstr;
     Kirin::DB->setup_main_db();
     warn "Table added, carrying on...\n";
+}
+
+sub _is_hosted_by {
+    my ($self, $thing, $type, $us) = @_;
+    my $res = Net::DNS::Resolver->new;
+    my $query = $res->query($thing, $type);
+    return unless $query;
+    my ($primary) = rrsort($type, "priority", $query->answer);
+    my $data;
+    if    ($type eq "A")     { $data = $primary->address }
+    elsif ($type eq "MX")    { $data = $primary->exchange }
+    elsif ($type eq "NS")    { $data = $primary->nsdname }
+    elsif ($type eq "CNAME") { $data = $primary->cname }
+    else { die "Unknown type $type" }
+    return ($data eq $us, $data);
 }
 
 1;

@@ -1,6 +1,5 @@
 package Kirin::Plugin::Dns;
 use Regexp::Common qw/net dns/;
-use Net::DNS qw/rrsort/;
 use Email::Valid;
 use strict;
 use base 'Kirin::Plugin';
@@ -44,7 +43,7 @@ sub list {
         return Kirin::Plugin::Domain->list($mm);
     }
 
-    my ($local, $whohosts) = $self->_locally_hosted($domain);
+    my ($local, $whohosts) = $self->_is_hosted_by($domain => "NS", $ourprimary);
     if ($mm->param("editing") and my $record = $self->_validate($domain, $mm, $local)) {
         my $action;
         if ($mm->param("deleting")) {
@@ -124,17 +123,6 @@ sub _setup_db {
     shift->_ensure_table("dns_record");
     Kirin::DB::DnsRecord->has_a(domain => "Kirin::DB::Domain");
     Kirin::DB::Domain->has_many(dns_records => "Kirin::DB::DnsRecord");
-}
-
-sub _locally_hosted {
-    my ($self, $domain) = @_;
-    my $res = Net::DNS::Resolver->new;
-    my $query = $res->query($domain->domainname, "NS");
-    return unless $query;
-    my ($primary) = rrsort("NS", "priority", $query->answer);
-    return unless $primary;
-    $primary = $primary->nsdname;
-    return ($primary eq $ourprimary, $primary);
 }
 
 package Kirin::DB::Dns;
