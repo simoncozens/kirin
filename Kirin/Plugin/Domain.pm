@@ -7,6 +7,11 @@ sub user_name { "Domains"               }
 
 sub list {
     my ($self, $mm) = @_;
+    # Add another hosted domain?
+    if ($mm->param("adding")) {
+        if (!$self->_can_add_more($mm->{customer})) {    # No can do
+        }
+    }
     $mm->respond("plugins/domain/list", 
             domains => [ $mm->{customer}->domains ],
             relations => [ $self->relations ]
@@ -14,6 +19,7 @@ sub list {
 }
 
 sub _setup_db {
+    shift->_ensure_table("domain");
     Kirin::DB::Domain->has_a(customer => "Kirin::DB::Customer");
     Kirin::DB::Customer->has_many(domains => "Kirin::DB::Domain");
 }

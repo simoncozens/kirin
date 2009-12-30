@@ -121,7 +121,7 @@ sub _validate {
 }
 
 sub _setup_db {
-    shift->ensure_table("dns_record");
+    shift->_ensure_table("dns_record");
     Kirin::DB::DnsRecord->has_a(domain => "Kirin::DB::Domain");
     Kirin::DB::Domain->has_many(dns_records => "Kirin::DB::DnsRecord");
 }

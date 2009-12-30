@@ -50,7 +50,7 @@ sub _quota {
     $customer->subscriptions;
 }
 
-sub ensure_table {
+sub _ensure_table {
     my ($self, $table) = @_;
     return if $Kirin::DB::loader->find_class($table);
     warn "Table $table for plugin $self missing, trying to add...\n";
