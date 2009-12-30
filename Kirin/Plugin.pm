@@ -50,4 +50,17 @@ sub _quota {
     $customer->subscriptions;
 }
 
+sub ensure_table {
+    my ($self, $table) = @_;
+    return if $Kirin::DB::loader->find_class($table);
+    warn "Table $table for plugin $self missing, trying to add...\n";
+    my $db_class = $self; $db_class =~ s/Plugin/DB/;
+    if (!$db_class->can("sql")) { die "Don't know how to set up that table" }
+    warn "Setting up the database table for ".$self->name."\n";
+    my $dbh = DBI->connect(Kirin->args->{dsn});
+    $dbh->do($db_class->sql) or die $dbh->errstr;
+    Kirin::DB->setup_main_db();
+    warn "Table added, carrying on...\n";
+}
+
 1;
