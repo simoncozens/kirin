@@ -1,11 +1,12 @@
 
 <h2>You can edit the following domains</h2>
 
-<ul>
+<table>
 [% FOR d = domains %]
-    <li> [%d.domainname%]
-    <a href="/amavis/list/[%d.id%]">Mail filtering</a>
-    </li>
+    <tr> <th> [%d.domainname%] </th>
+    [% FOR r = relations %]
+        <td> <a href="/[%r.name%]/[%r.default_action%]/[%d.id%]">[% r.user_name %]</a> </td>
+    [% END %]
+    </tr>
 [% END %]
-    
-</ul>
+</table>

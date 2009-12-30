@@ -8,7 +8,8 @@ sub user_name { "Domains"               }
 sub list {
     my ($self, $mm) = @_;
     $mm->respond("plugins/domain/list", 
-            domains => [ $mm->{customer}->domains ]
+            domains => [ $mm->{customer}->domains ],
+            relations => [ $self->relations ]
     );
 }
 

@@ -6,6 +6,8 @@ sub exposed_to     { 0 }
 sub user_name      { "Mail Filtering Rules" }
 sub default_action { "list" }
 
+Kirin::Plugin::Amavis->relates_to("Kirin::Plugin::Domain");
+
 my %default_policy = (
     virus_lover => "Y", spam_lover => "Y", spam_modifies_subj => "N",
     bypass_virus_checks => "Y", bypass_spam_checks => "Y",

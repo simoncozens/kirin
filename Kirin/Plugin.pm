@@ -12,6 +12,15 @@ sub default_action { "view" }
 sub _skip_auth { }
 sub exposed_to { 1 }
 
+my %relations = ();
+
+sub relations { @{ $relations{+shift} || [] } }
+sub relates_to {
+    my ($self, $parent) = @_;
+    push @{$relations{$parent}},
+        bless \$self, 'Template::Plugin::Class::Proxy';
+}
+
 sub _edit {
     my ($self, $mm, $thing) = @_;
     my $params = $mm->{req}->parameters();
