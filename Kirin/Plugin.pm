@@ -79,9 +79,9 @@ sub _is_hosted_by {
     if (ref $us) {
         my $res = 0;
         for (@$us) { $res = 1 if $data eq $_ }
-        return ($res, $data);
+        return wantarray ? ($res, $data) : $res;
     } else { 
-        return ($data eq $us, $data);
+        return wantarray ? ($data eq $us, $data) : $data eq $us;
     }
 }
 
