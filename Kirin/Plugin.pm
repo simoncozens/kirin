@@ -76,7 +76,13 @@ sub _is_hosted_by {
     elsif ($type eq "NS")    { $data = $primary->nsdname }
     elsif ($type eq "CNAME") { $data = $primary->cname }
     else { die "Unknown type $type" }
-    return ($data eq $us, $data);
+    if (ref $us) {
+        my $res = 0;
+        for (@$us) { $res = 1 if $data eq $_ }
+        return ($res, $data);
+    } else { 
+        return ($data eq $us, $data);
+    }
 }
 
 
