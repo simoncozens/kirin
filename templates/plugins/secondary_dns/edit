@@ -8,6 +8,11 @@ provide a backup in the case of the failure of your primary.
 <p>This service is currently <i>on</i>.
 <a href="?editing=1&on=0">Click here</a> to turn the service off.</p>
 [% ELSE %]
-<p>This service is currently <i>off</i>.
-<a href="?editing=1&on=1">Click here</a> to turn the service on.</p>
+<p>This service is currently <i>off</i>.</p>
+<form method="post">
+<input type="hidden" value="1" name="editing">
+<input type="hidden" value="1" name="on">
+IP address of primary nameserver: <input name="primary_server">
+<input type="submit" value="Turn on">
+</form>
 [% END %]
