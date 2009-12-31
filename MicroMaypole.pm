@@ -1,5 +1,6 @@
 package MicroMaypole;
 use Template;
+use Plack::App::File;
 use Plack::Request;
 use Plack::Response;
 use strict;
@@ -17,7 +18,20 @@ sub app {
     });
 
     sub {
-        my $req = Plack::Request->new(shift);
+        my $env = shift;
+        my $req = Plack::Request->new($env);
+
+        # Fake static middleware because it won't let us have multiple
+        # paths
+        if ($req->path =~ /^\/static/) {
+            for (@{ref($args{template_path}) ? $args{template_path} : [$args{template_path}]}) {
+                next unless -f "$_/".$req->path;
+                my $file = Plack::App::File->new({ root => $_ });
+                return $file->call({ %$env, PATH_INFO => $env->{PATH_INFO} });
+            }
+            return [404, ['Content-Type' => 'text/plain'], ['not found']];
+        }
+
         my $m = $self->new(%args);
         $m->{template_engine} = $t;
         $m->handler($req)->finalize;
