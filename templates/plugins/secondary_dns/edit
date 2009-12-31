@@ -1,0 +1,13 @@
+<h2>Secondary DNS for [% domain.domainname %]</h2>
+
+<p>
+We can provide you with secondary NS and MX records for this domain to
+provide a backup in the case of the failure of your primary.
+</p>
+[% IF have_already %]
+<p>This service is currently <i>on</i>.
+<a href="?editing=1&on=0">Click here</a> to turn the service off.</p>
+[% ELSE %]
+<p>This service is currently <i>off</i>.
+<a href="?editing=1&on=1">Click here</a> to turn the service on.</p>
+[% END %]
