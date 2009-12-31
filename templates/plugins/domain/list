@@ -1,5 +1,7 @@
 
-<h2>You can edit the following domains</h2>
+<h2> Domain management </h2>
+[% IF domains.size %]
+<h3>You can edit the following domains</h3>
 
 <table>
 [% FOR d = domains %]
@@ -10,3 +12,14 @@
     </tr>
 [% END %]
 </table>
+[% END %]
+
+[% IF can_add_more %]
+
+<h3> Add a new domain </h3>
+
+<form method="post"><input type="hidden" value="1" name="adding">
+Name: <input name="domainname">
+<input type="submit">
+</form>
+[% END %]
