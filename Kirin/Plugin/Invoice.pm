@@ -69,6 +69,16 @@ sub payment_form {
     return $pp->_pay_invoice($self, $mm);
 }
 
+sub mark_paid {
+    my ($self) = @_;
+    $self->paid(1);
+    $self->update();
+    my $ap = Kirin->args->{accounting_plugin};
+    if (!$ap) { ($ap) = grep { $_->can("_account_for_invoice") } Kirin->plugins }
+    if (!$ap) { return; } # No warning, since accounting isn't that common
+    $ap->_account_for_invoice($self);
+}
+
 sub dispatch {
     my $self = shift;
     return if $self->issued() or $self->total <= 0;

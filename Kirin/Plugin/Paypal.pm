@@ -38,8 +38,7 @@ sub ipn {
     $pp->update;
     if ($params->{payment_status} =~ /Completed/ and
         $params->{payment_gross} eq $invoice->total) {
-        $invoice->paid(1);
-        $invoice->update();
+        $invoice->mark_paid();
     } elsif ($params->{payment_status} eq "Pending") { 
         Kirin::Utils->email_boss(
             severity => "info",
