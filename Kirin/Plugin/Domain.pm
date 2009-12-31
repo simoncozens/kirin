@@ -14,7 +14,7 @@ sub list {
         Kirin::DB::Domain->create({
             domainname => $domain, customer => $mm->{customer} 
         });
-        $self->_add_todo($mm, addhosting => $domain);
+        $self->_add_todo($mm, add_hosting => $domain);
         $mm->message("Your domain has been added and will be available shortly.");
     }
     $mm->respond("plugins/domain/list", 
