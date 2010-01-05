@@ -76,7 +76,7 @@ sub buy_package {
     
     my $subscription = $self->add_to_subscriptions({
         "package" => $package->id,
-        expires => (Time::Piece->new() + Time::Seconds->$duration)->ymd
+        expires => (Time::Piece->new() + Time::Seconds->$duration)
     });
 
     # Add a line in the guy's next bill
@@ -104,6 +104,16 @@ sub cancel_subscription {
         }
     }
     $subscription->delete;
+}
+
+sub renew_subscription {
+    my ($self, $subscription) = @_;
+    my $package = $subscription->package;
+    my $duration = "ONE_".uc $package->duration; # URGH
+    (warn "PACKAGE ".$package->name." has illegal duration!"), return
+        unless Time::Seconds->can($duration);
+    $subscription->expires( $subscription->expires + Time::Seconds->$duration );
+    $self->bill_for($subscription);
 }
 
 sub bill_for {

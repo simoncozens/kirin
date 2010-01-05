@@ -9,10 +9,16 @@
 <h3> [%p.name %] </h3>
 [% SET this_subscription = self.customer.subscriptions("package", p.id).first;
  IF this_subscription; %]
-    <p>(Expires [%this_subscription.expires%])</p>
     <form method="post">
+    [% IF this.expired %]
+    <p>(This subscription has <b>expired</b>)</p>
+    <input type="hidden" value="[%this_subscription.id%]" name="renewsubscription">
+    <input type="submit" value="Renew">
+    [% ELSE %]
+    <p>(Expires [%this_subscription.expires%])</p>
     <input type="hidden" value="[%this_subscription.id%]" name="cancelsubscription">
     <input type="submit" value="Cancel">
+    [% END %]
     </form>
 
  [% ELSE%]
