@@ -1,0 +1,17 @@
+<h2>SSL server for [% domain.domainname %]</h2>
+
+<p>
+We can provide you with a dedicated SSL server for your web site. It may
+take up to three working days to provision this service.
+</p>
+[% IF have_already %]
+<p>This service is currently <i>on</i>.
+<a href="?editing=1&on=0">Click here</a> to turn the service off.</p>
+[% ELSE %]
+<p>This service is currently <i>off</i>.</p>
+<form method="post">
+<input type="hidden" value="1" name="editing">
+<input type="hidden" value="1" name="on">
+<input type="submit" value="Turn on">
+</form>
+[% END %]
