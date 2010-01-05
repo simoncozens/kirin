@@ -2,11 +2,17 @@ package Kirin::Plugin::Customer;
 use base 'Kirin::Plugin';
 sub name { "customer" }
 use strict;
+use Email::Valid;
+my $valid_check = Email::Valid->new(-mxcheck => 1);
 
 sub edit {
     my ($self, $mm, @args) = @_;
     my $customer = $mm->{customer};
-    $self->_edit($mm, $customer);
+    $self->_edit($mm, $customer, {
+        email => sub { $valid_check->address( shift ) },
+        billing_email => sub { $valid_check->address( shift ) },
+
+    });
     $mm->respond("plugins/customer/edit", customer => $customer);
 }
 

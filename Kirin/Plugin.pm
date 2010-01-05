@@ -27,7 +27,7 @@ sub _edit {
     my $params = $mm->{req}->parameters();
     if ($params->{editing}) {
         for ($thing->columns) { if (my $new = $params->{$_}) {
-            if ($validation->{$_} and $new !~ $validation->{$_}) {
+            if ($validation->{$_} and !$validation->{$_}->($new)) {
                 $mm->message("Invalid value given for $_, ignored");
             } else { 
                 $thing->$_($new);

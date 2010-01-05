@@ -21,7 +21,6 @@ sub edit {
         } elsif ($self->_can_add_more($mm->{customer})) {
             $rec = Kirin::DB::SslServer->create({ 
                 domain => $domain, customer => $mm->{customer}, 
-                primary_server => $primary
             });
             $self->_add_todo($mm, configure_server => $domain->domainname);
         } else { 
@@ -41,11 +40,10 @@ sub edit {
 }
 
 sub _setup_db {
-    shift->_ensure_table("secondary_dns");
+    shift->_ensure_table("ssl_server");
     Kirin::DB::SslServer->has_a(domain => "Kirin::DB::Domain");
     Kirin::DB::SslServer->has_a(customer => "Kirin::DB::Customer");
-    # This following line spelt funny for ->_can_add_more reasons
-    Kirin::DB::Customer->has_many(secondarydn => "Kirin::DB::SslServer");
+    Kirin::DB::Customer->has_many(ssl_servers => "Kirin::DB::SslServer");
 }
 
 package Kirin::DB::SslServer;
