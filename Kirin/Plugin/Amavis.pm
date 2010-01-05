@@ -5,6 +5,7 @@ use base 'Kirin::Plugin';
 sub exposed_to     { 0 }
 sub user_name      { "Mail Filtering Rules" }
 sub default_action { "list" }
+my $valid_check = Email::Valid->new(-mxcheck => 1);
 
 Kirin::Plugin::Amavis->relates_to("Kirin::Plugin::Domain");
 
@@ -26,10 +27,26 @@ sub list {
         $mm->message("That's not your domain!");
         return Kirin::Plugin::Domain->list($mm);
     }
+    my $dn = $domain->domainname;
+    if ($mm->param("addpolicy")) {
+        $self->_add_policy($mm, 
+            domain => $domain,
+            email  => $mm->param("email"),
+            sender => $mm->param("sender"),
+            policy => $mm->param("policy")
+       );
+    } elsif ($mm->param("deletepolicy")) {
+        # Check email is part of this domain
+        my $policy = Kirin::ExternalDB::Amavis::Wblist->retrieve($mm->param("pid"));
+        if ($policy and $policy->rid->email =~ /$dn/) {
+            $policy->delete;
+            $mm->message("Rule deleted");
+        }
+    }
     if ($mm->param("editing")) { # Adding and editing are the same
         my $localpart = $mm->param("localpart");
         my $email     =  $localpart . '@' . $domain->domainname;
-        if (!Email::Valid->address($email)) {
+        if (!$valid_check->address($email)) {
             $mm->message("That's not a valid email address");
             return Kirin::Plugin::Domain->list($mm);
         }
@@ -65,6 +82,29 @@ sub list {
     $mm->respond("plugins/amavis/list", rules => \@rules, domain => $domain);
 }
 
+sub _add_policy {
+    my ($self, $mm, %args) = @_;
+    # Make sure it ends with our domain
+    my $dn = $args{domain}->domainname;
+    if ($args{email} !~ /\@$dn$/) { $args{email} .= "\@$dn"; }
+    if (!$valid_check->address($args{email})) {
+        $mm->message("Invalid recipient address"); return;
+    }
+    if (!$valid_check->address($args{sender})) {
+        $mm->message("Invalid sender address"); return;
+    } 
+    if ($args{policy} !~ /^[WB]$/i) { 
+        $mm->message("Invalid policy '$args{policy}'"); return 
+    }
+    my $sid = Kirin::ExternalDB::Amavis::Mailaddr->find_or_create( email => $args{sender} );
+    my $rid = Kirin::ExternalDB::Amavis::Users->find_or_create(email => $args{email} );
+    Kirin::ExternalDB::Amavis::Wblist->create({
+        rid => $rid,
+        sid => $sid,
+        policy => $args{policy}
+    });
+}
+
 sub _setup_db {
     my $dsn = Kirin->args->{amavis_dsn} 
         or die "You need to set the amavis_dsn configuration argument to use the amavis plugin";
@@ -76,8 +116,7 @@ sub _setup_db {
         options => { AutoCommit => 1 },
         relationships => 1,
     );
-
-    
+    Kirin::ExternalDB::Amavis::Wblist->has_a(rid => "Kirin::ExternalDB::Amavis::Users");
 }
 
 1;
