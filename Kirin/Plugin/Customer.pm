@@ -11,7 +11,8 @@ sub edit {
     $self->_edit($mm, $customer, {
         email => sub { $valid_check->address( shift ) },
         billing_email => sub { $valid_check->address( shift ) },
-
+        phone => sub { shift =~ /^\+?[\d-\.]+$/ },
+        fax   => sub { shift =~ /^\+?[\d-\.]+$/ }
     });
     $mm->respond("plugins/customer/edit", customer => $customer);
 }
