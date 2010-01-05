@@ -23,11 +23,15 @@ sub relates_to {
 }
 
 sub _edit {
-    my ($self, $mm, $thing) = @_;
+    my ($self, $mm, $thing, $validation) = @_;
     my $params = $mm->{req}->parameters();
     if ($params->{editing}) {
         for ($thing->columns) { if (my $new = $params->{$_}) {
-            $thing->$_($new);
+            if ($validation->{$_} and $new !~ $validation->{$_}) {
+                $mm->message("Invalid value given for $_, ignored");
+            } else { 
+                $thing->$_($new);
+            }
         } }
         $thing->update;
     }
