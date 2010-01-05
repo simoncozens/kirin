@@ -27,7 +27,7 @@ sub list {
 sub _validate {
     my ($self, $mm, $can_add) = @_;
     if (!$can_add) {
-        $mm->message("You cannot add any more domains to your account; please purchase more hosting packages");
+        $mm->no_more("domains");
         return;
     } 
     my $dn = $mm->param("domainname") or return;

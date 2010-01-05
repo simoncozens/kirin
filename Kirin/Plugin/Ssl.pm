@@ -22,7 +22,7 @@ sub list {
 sub order {
     my ($self, $mm) = @_;
     if (!$self->_can_add_more($mm->{customer})) {
-        $mm->message("You can't order any more SSL certificates; upgrade your account?");
+        $mm->no_more("SSL certificates");
         return $self->list($mm);
     }
 

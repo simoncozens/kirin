@@ -31,7 +31,7 @@ sub edit {
                 $mm->message("Primary server doesn't look like an IP address");
             }
         } else { 
-            $mm->message("You can't add any more backup MXes; do you need to purchase more services?");
+            $mm->no_more("backup MXes");
         }
     } elsif ($mm->param("editing")) { # Turn it off
         if ($rec) { 

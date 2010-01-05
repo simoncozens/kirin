@@ -160,4 +160,7 @@ sub try_to_add_customer {
     return 1;
 }
 
+sub no_more {
+    my ($self, $what) = @_;
+    $self->message("You can't add any more $what; do you need to purchase more services?");
 1;

@@ -18,7 +18,7 @@ sub list {
         my ($dbp1, $dbp2) = ($mm->param("pass1"), $mm->param("pass2"));
         my $db;
         if (!$self->_can_add_more($mm->{customer})) {    # No can do
-            $mm->message("You cannot add any more databases to your account; please purchase more database quota");
+            $mm->no_more("databases");
         } elsif ($dbname !~ /^\w+$/) {
             $mm->message("The database name should consist only of alphanumeric characters");
         } elsif (!$dbp1) {
