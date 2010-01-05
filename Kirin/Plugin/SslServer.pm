@@ -23,6 +23,7 @@ sub edit {
                 domain => $domain, customer => $mm->{customer}, 
             });
             $self->_add_todo($mm, configure_server => $domain->domainname);
+            $mm->message("Your server has been ordered and will be configured shortly.");
         } else { 
             $mm->no_more("SSL servers");
         }
