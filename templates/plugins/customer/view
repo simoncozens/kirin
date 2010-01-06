@@ -6,7 +6,7 @@
 [% IF customer.subscriptions %]
 <ul>
 [% FOR s = customer.subscriptions %]
-<li> [% s.package.name %] (Expires [% s.expires %])
+<li> [% s.package.name %] (Expires [% s.expires.ymd %])
 <div class="detailswrapper"><a onclick="showDetails(this)"> Details...</a><div class="details">
     <ul>
     [% FOR service = s.package.services %]

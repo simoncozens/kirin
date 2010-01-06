@@ -43,7 +43,7 @@ sub _setup_db {
     Kirin::DB::Package->has_many(services => ["Kirin::DB::PackageService" => "service"]);
     Kirin::DB::Subscription->has_a(package => "Kirin::DB::Package");
     Kirin::DB::Subscription->has_a(customer => "Kirin::DB::Service");
-    Music::CD->has_a(expires => 'Time::Piece',
+    Kirin::DB::Subscription->has_a(expires => 'Time::Piece',
       inflate => sub { Time::Piece->strptime(shift, "%Y-%m-%d") },
       deflate => 'ymd',
     );
