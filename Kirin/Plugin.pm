@@ -63,7 +63,9 @@ sub _ensure_table {
     if (!$db_class->can("sql")) { die "Don't know how to set up that table" }
     warn "Setting up the database table for ".$self->name."\n";
     my $dbh = DBI->connect(Kirin->args->{dsn});
-    $dbh->do($db_class->sql) or die $dbh->errstr;
+    for (split /;/, $db_class->sql) { 
+        $dbh->do($_) if /\w/;
+    }
     Kirin::DB->setup_main_db();
     warn "Table added, carrying on...\n";
 }
