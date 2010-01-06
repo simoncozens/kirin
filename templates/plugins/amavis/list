@@ -32,3 +32,35 @@ Mark-as-spam level</th><th>Kill level</th></tr>
 </form>
 </tr>
 </table>
+
+
+<h3> Black/Whitehole settings </h3>
+
+<p> You can block certain addresses from sending you email, or you can
+ensure that other email addresses can always send you mail despite the
+spam and virus checks. </p>
+
+<table>
+<tr><th>From</th><th>To</th><th> Allow / Deny </th> </tr>
+[% FOR r = wblist %]
+<tr>
+    <td>[% r.sid.email | html %]</td>
+    <td>[% r.rid.email | html %] </td>
+    <td>[% IF r.wb == "W"; "Allow" ; ELSE ; "Deny"; END %]</td>
+    <td><form method="post">
+    <input type="submit" name="deletepolicy" value="Delete">
+    <input type="hidden" name="rid" value="[%r.rid.id |html%]">
+    <input type="hidden" name="sid" value="[%r.sid.id|html%]">
+    </form></td>
+</tr>
+[% END %]
+
+<tr>
+<form method="post"> 
+<td> <input name="sender"></td>
+<td> <input name="email">@[%domain.domainname%] </td>
+<td> <select name="policy"><option value="B">Deny</option><option value="W">Allow</option></td>
+<td> <input type="submit" name="addpolicy" value="Add"> </td>
+</form>
+</tr>
+</table>

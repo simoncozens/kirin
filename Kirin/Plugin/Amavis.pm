@@ -37,7 +37,7 @@ sub list {
        );
     } elsif ($mm->param("deletepolicy")) {
         # Check email is part of this domain
-        my $policy = Kirin::ExternalDB::Amavis::Wblist->retrieve($mm->param("pid"));
+        my $policy = Kirin::ExternalDB::Amavis::Wblist->retrieve($mm->param("rid"), $mm->param("sid"));
         if ($policy and $policy->rid->email =~ /$dn/) {
             $policy->delete;
             $mm->message("Rule deleted");
@@ -79,7 +79,10 @@ sub list {
     my @rules = Kirin::ExternalDB::Amavis::Policy->search_like(
             policy_name => "%\@".$domain->domainname
     );
-    $mm->respond("plugins/amavis/list", rules => \@rules, domain => $domain);
+
+    $mm->respond("plugins/amavis/list", rules => \@rules, 
+        wblist => [ Kirin::ExternalDB::Amavis::Wblist->my_rules($domain) ],
+        domain => $domain);
 }
 
 sub _add_policy {
@@ -101,7 +104,7 @@ sub _add_policy {
     Kirin::ExternalDB::Amavis::Wblist->create({
         rid => $rid,
         sid => $sid,
-        policy => $args{policy}
+        wb => $args{policy}
     });
 }
 
@@ -117,6 +120,20 @@ sub _setup_db {
         relationships => 1,
     );
     Kirin::ExternalDB::Amavis::Wblist->has_a(rid => "Kirin::ExternalDB::Amavis::Users");
+    Kirin::ExternalDB::Amavis::Wblist->has_a(sid => "Kirin::ExternalDB::Amavis::Mailaddr");
+
+    Kirin::ExternalDB::Amavis::Wblist->set_sql(my_rules => q{
+SELECT rid, sid, wb
+FROM wblist, users
+WHERE users.id = wblist.rid
+AND users.email LIKE ?
+});
+}
+
+package Kirin::ExternalDB::Amavis::Wblist;
+sub my_rules { 
+    my ($self, $domain) = @_;
+    $self->search_my_rules('%@'.$domain->domainname);
 }
 
 1;
