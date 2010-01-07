@@ -2,14 +2,14 @@ package Kirin::Plugin::MailAlias;
 use base 'Kirin::Plugin';
 sub name      { "mail_alias"            }
 sub user_name { "Mail Aliases"          } 
+Kirin::Plugin::MailAlias->relates_to("Kirin::Plugin::Domain");
 
-sub handle {
-    my ($self, $req, @args) = @_;
-    my $domain = Kirin::DB::Domain->retrieve($args[0]);
-    # Should recheck ACL here
-    if (!$domain or !$req->{user}->can_do("mail_alias", $domain->domainname)) {
-        return Kirin->its_all_gone_wrong("Tried to get around the ACL. Naughty!");
-    }
+sub list {
+    my ($self, $mm, $domain) = @_;
+    my $r;
+    ($domain, $r) = Kirin::DB::Domain->web_retrieve($mm, $domain);
+    return $r if $r;
+
     my $alias_file = "/etc/exim4/virtual/".$domain->domainname;
     if ($req->parameters()->{"thefile"}){ # We have an upload
         open my $alias, ">", $alias_file or 
