@@ -4,6 +4,7 @@ use strict;
 use base 'Kirin::Plugin';
 sub exposed_to     { 0 }
 sub user_name      { "Mail Redirect" }
+sub name           { "mail_redirect" }
 sub default_action { "list" }
 my $valid_check = Email::Valid->new(-mxcheck => 1);
 
@@ -55,6 +56,7 @@ sub _add_policy {
 }
 
 sub _setup_db {
+    shift->_ensure_table("mail_redirect");
     Kirin::DB::MailRedirect->has_a(domain => "Kirin::DB::Domain");
     Kirin::DB::Domain->has_many(redirections => "Kirin::DB::MailRedirect");
 }
@@ -67,6 +69,7 @@ CREATE TABLE IF NOT EXISTS mail_redirect (
     domain integer,
     local varchar(255),
     remote varchar(255)
+)
 }};
 
 1;
