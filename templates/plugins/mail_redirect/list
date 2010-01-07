@@ -1,0 +1,26 @@
+<h3> Mail redirection rules for domain [% domain.domainname %]</h3>
+
+<p> You can request for email to certain addresses to be forwarded for
+you. </p>
+
+<table>
+<tr><th>From</th><th>To</th></tr>
+[% FOR r = redirections %]
+<tr>
+    <td>[% r.local | html %]</td>
+    <td>[% r.remote | html %] </td>
+    <td><form method="post">
+    <input type="submit" name="deletepolicy" value="Delete">
+    <input type="hidden" name="rid" value="[%r.id |html%]">
+    </form></td>
+</tr>
+[% END %]
+
+<tr>
+<form method="post"> 
+<td> <input name="local">@[%domain.domainname%] </td>
+<td> <input name="remote"></td>
+<td> <input type="submit" name="addpolicy" value="Add"> </td>
+</form>
+</tr>
+</table>
