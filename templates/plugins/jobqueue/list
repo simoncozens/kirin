@@ -1,0 +1,21 @@
+<h3> Jobs in the queue</h3>
+
+<table>
+<tr><th>Customer</th> 
+    <th>Plugin </th> 
+    <th>Method</th> 
+    <th>Parameters</th> 
+</tr>
+
+[% FOR j = jobs %]
+<tr>
+<form method="post">
+<input type="hidden" name="jid" value="[%j.id|html%]">
+<td>[%j.customer.forename|html%] [%j.customer.surname|html%]</td>
+<td>[%j.plugin | html%]</td>
+<td>[%j.method | html%]</td>
+<td>[%j.parameters | html%]</td>
+<td> <input name="deleting" type="submit" value="Delete Job"></td>
+</form>
+</tr>
+[% END %]
