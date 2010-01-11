@@ -2,6 +2,7 @@ package Kirin::Plugin;
 use List::Util qw/sum/;
 use constant INFINITY => -1;
 use UNIVERSAL::moniker;
+use UNIVERSAL::require;
 use Net::DNS qw/rrsort/;
 sub name { shift->moniker }
 sub user_name {
@@ -18,6 +19,8 @@ my %relations = ();
 sub relations { @{ $relations{+shift} || [] } }
 sub relates_to {
     my ($self, $parent) = @_;
+    # Parent must be loaded first.
+    $parent->require;
     push @{$relations{$parent}},
         bless \$self, 'Template::Plugin::Class::Proxy';
 }
