@@ -65,7 +65,7 @@ sub _ensure_table {
     my $db_class = $self; $db_class =~ s/Plugin/DB/;
     if (!$db_class->can("sql")) { die "Don't know how to set up that table" }
     warn "Setting up the database table for ".$self->name."\n";
-    my $dbh = DBI->connect(Kirin->args->{dsn});
+    my $dbh = DBI->connect(Kirin->args->{dsn}, Kirin->args->{database_user}, Kirin->args->{database_password});
     for (split /;/, $db_class->sql) { 
         $dbh->do($_) if /\w/;
     }
