@@ -19,8 +19,6 @@ my %relations = ();
 sub relations { @{ $relations{+shift} || [] } }
 sub relates_to {
     my ($self, $parent) = @_;
-    # Parent must be loaded first.
-    $parent->require;
     push @{$relations{$parent}},
         bless \$self, 'Template::Plugin::Class::Proxy';
 }

@@ -12,7 +12,8 @@ sub setup_db {
     Kirin::DB::Customer->has_many(users => ["Kirin::DB::Admin" => "user"]);
     Kirin::DB::User->has_a(customer => "Kirin::DB::Customer");
     # For everything else, see the individual plugin classes
-    for (Kirin->plugins) { $_->can("_setup_db") && $_->_setup_db; }
+    for (sort { $b->relations <=> $a->relations} 
+        Kirin->plugins) { $_->can("_setup_db") && $_->_setup_db; }
 }
 
 sub setup_main_db {
