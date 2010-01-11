@@ -110,7 +110,7 @@ sub _setup_db {   # Piggyback on this method as it's called when ->args is ready
         username => Kirin->args->{enom_reseller_username},
         password => Kirin->args->{enom_reseller_password},
         test     => 1);                                      # XXX
-    shift->ensure_table("ssl_certificate");
+    shift->_ensure_table("ssl_certificate");
     Kirin::DB::SslCertificate->has_a(customer => "Kirin::DB::Customer");
     Kirin::DB::Customer->has_many(ssls => "Kirin::DB::SslCertificate");
 }
