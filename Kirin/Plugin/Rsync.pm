@@ -80,7 +80,8 @@ sub _parse_email {
 }
 
 sub _setup_db {
-Kirin::DB::Rsync->set_sql(empty => q{
+    shift->_ensure_table("rsync");
+    Kirin::DB::Rsync->set_sql(empty => q{
 SELECT * FROM rsync
 WHERE customer IS NULL
 OR customer = 0
