@@ -18,12 +18,16 @@ requires    "Authen::Passphrase" => 0;
 requires    "Module::Pluggable" => 0;
 requires    "Email::Send" => 0;
 requires    "Class::DBI::SQLite" => 0;
+requires    "Class::DBI::Loader" => 0;
 requires    "Net::SSLeay" => 0;
+requires    "File::Slurp" => 0;
 requires    "Net::DNS" => 0;
+requires    "Email::Valid" => 0;
 recommends  "Business::PayPal" => 0;
 recommends  "Regexp::Common::dns" => 0;
 recommends  "Net::eNom" => 0.3;
 recommends  "Data::Password::BasicCheck" => 0;
+recommends  "Net::KashFlow" => 0;
 
 auto_install;
 WriteAll;
