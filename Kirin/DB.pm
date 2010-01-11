@@ -19,6 +19,8 @@ sub setup_main_db {
     my $self = shift;
     $loader = Class::DBI::Loader->new(
         dsn => Kirin->args->{dsn},
+        user => Kirin->args->{database_user},
+        password => Kirin->args->{database_password},
         namespace => "Kirin::DB",
         options => { AutoCommit => 1 },
         relationships => 1,
