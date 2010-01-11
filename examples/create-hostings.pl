@@ -1,5 +1,4 @@
-use Kirin::DB;
-Kirin::DB->setup_db("dbi:SQLite:kirin.db");
+do 'kirin.pl';
 
 my $description = "Our Direct Hosting services are ideal for those who want full service hosting on a domain. The service provides comprehensive Email and Webspace on our Linux servers based in London Docklands.
 
