@@ -243,7 +243,7 @@ sub update_from_enom {
 
 package Kirin::DB::Ssl; # Just for deployment
 
-sub sql {q{
+sub sql {q|
 CREATE TABLE IF NOT EXISTS ssl_certificate ( id integer primary key not null,
     customer integer,
     enom_cert_id integer,
@@ -253,5 +253,5 @@ CREATE TABLE IF NOT EXISTS ssl_certificate ( id integer primary key not null,
     certificate text,
     cert_status varchar(255)
 );
-}}
+|}
 1;
