@@ -83,8 +83,7 @@ CREATE TABLE jobqueue (
     plugin varchar(255),
     method varchar(255),
     parameters text
-
-)
+);
 
 /* Some dummy data */
 
