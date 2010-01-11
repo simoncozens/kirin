@@ -1,6 +1,6 @@
 package Kirin::Plugin::Paypal;
 use base 'Kirin::Plugin';
-use constant TESTING => 1;
+use constant TESTING => 0;
 use Business::PayPal;
 
 sub exposed_to { 0 }
