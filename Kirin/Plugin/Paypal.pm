@@ -107,7 +107,7 @@ sub _pay_invoice {
 }
 
 sub _setup_db {
-    shift->ensure_table("paypal");
+    shift->_ensure_table("paypal");
     Kirin::DB::Paypal->has_a(invoice => "Kirin::DB::Invoice");
 }
 
