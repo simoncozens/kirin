@@ -25,10 +25,10 @@ sub list {
             $mm->message("You need to supply a database password");
         } elsif ($dbp1 ne $dbp2) {
             $mm->message("Passwords don't match");
-        } elsif (Kirin::DB::Database->search(name => $dbname)) {
+        } elsif (Kirin::DB::UserDatabase->search(name => $dbname)) {
             $mm->message("That name is already taken; please choose another");
         } elsif (
-            $db = Kirin::DB::Database->create({
+            $db = Kirin::DB::UserDatabase->create({
                     customer => $mm->{customer},
                     name     => $dbname,
                     username => $username,
@@ -54,7 +54,7 @@ sub list {
 sub delete {
     my ($self, $mm, $id) = @_;
     my $db;
-    if (!$id or !($db = Kirin::DB::Database->retrieve($id))) {
+    if (!$id or !($db = Kirin::DB::UserDatabase->retrieve($id))) {
         return $self->list($mm);
     }
     if ($db->customer->id != $mm->{customer}->id and !$mm->{user}->is_root) {
@@ -87,11 +87,12 @@ sub _handle_cancel_request {
 }
 
 sub _setup_db {
-    Kirin::DB::Database->has_a(customer => "Kirin::DB::Customer");
-    Kirin::DB::Customer->has_many(databases => "Kirin::DB::Database");
+    shift->_ensure_table("user_database");
+    Kirin::DB::UserDatabase->has_a(customer => "Kirin::DB::Customer");
+    Kirin::DB::Customer->has_many(databases => "Kirin::DB::UserDatabase");
 }
 
-package Kirin::DB::Database;
+package Kirin::DB::UserDatabase;
 
 {
     our $dbh;
@@ -152,8 +153,10 @@ sub drop_on_backend {
     return 1;
 }
 
+package Kirin::DB::Database;
+
 sub sql {q/
-CREATE TABLE IF NOT EXISTS database (
+CREATE TABLE IF NOT EXISTS user_database (
     id integer primary key not null,
     customer integer,
     name varchar(255),
