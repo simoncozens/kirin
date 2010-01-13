@@ -86,13 +86,17 @@ sub _available_features {
         map { $_->package->services }
         $mm->{customer}->subscriptions
     ) {
-        if (/(^\w+):\d+/) { $features{$1} += $2 } else { $features{$_}++ }
+        if (/(^\w+):(\d+|-1)/) { 
+            $features{$1} = $2 == -1 ? -1 : $features{$1} + $2;
+        } else { 
+            $features{$_}++ 
+        }
     }
     # De-quota the ones we've used
-    $features{$_->feature}-- for 
-        map { $_->features }
-        map { $_->webhostings }
-        $mm->{customer}->domains;
+    for ( map { $_->features } map { $_->webhostings }
+        $mm->{customer}->domains) {
+        $features{$_->feature}-- unless $features{$_->feature} == -1;
+    }
     return %features;
 }
 
