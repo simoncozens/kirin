@@ -1,0 +1,43 @@
+<h2> Web sites under [% domain.domainname |html %]</h2>
+
+<ul>
+[% FOR h = hostings %]
+<li> <a href="http://[% h.hostname |html%]/">[%h.hostname%]</a>
+<ul> <!-- Seriously, you're meant to customize this -->
+[% FOR f = h.features %]
+<li> [% f.feature%] installed [% IF f.path %] on <a href="http://[%
+h.hostname |html%]/[%f.path%]">[%f.path%]</a> [% END %]
+<form method="post">
+<input type="hidden" name="hid" value="[%h.id%]">
+<input type="hidden" name="rmfeature" value="[%h.id%]">
+<input type="submit" name="s" value="Remove">
+</form>
+[% END %]
+</ul>
+
+[% IF available_features.size > 0 %]
+<form method="post">
+Add a new feature:
+<input type="hidden" name="hid" value="[%h.id%]">
+<select name="addfeature">
+[% FOR f = available_features %]
+<option value="[%f|html%]"> [%f |html%]</option>
+[% END %]
+</select>
+
+Path: <input name="path">
+
+<input type="submit" name="s" value="Add">
+</form>
+[% END %]
+
+[% END %]
+</ul>
+
+<h3> Host a new site </h3>
+
+<form method="post">
+<input name="hostname">.[%domain.domainname%]
+<input type="hidden" name="addhosting" value="1">
+<input type="submit" name="s" value="Create">
+</form>

@@ -4,6 +4,8 @@ use base 'Kirin::Plugin';
 sub exposed_to     { 0 }
 sub user_name      { "Web Hosting" }
 sub default_action { "list" }
+use Regexp::Common qw/net dns/;
+
 Kirin::Plugin::Webhosting->relates_to("Kirin::Plugin::Domain");
 
 sub list {
@@ -29,11 +31,16 @@ sub list {
     if ($mm->param("addhosting")) {
         # Can I add one? (Check quota)
         # Is this in my domain?!
-        my $hostname = $mm->param("hostname");
-        $hosting = Kirin::DB::Webhosting->create({
-            domain => $domain, hostname => $hostname });
-        $self->_add_todo($mm, create => $hosting->hostname);
-        $mm->message("Your site has been configured and will be available shortly");
+        # Hostname characters OK?
+        my $hostname = join ".", $mm->param("hostname"), $domain->domainname;
+        if ($hostname =~ /^$RE{dns}{data}{cname}$/) {
+            $hosting = Kirin::DB::Webhosting->create({
+                domain => $domain, hostname => $hostname });
+            $self->_add_todo($mm, create => $hosting->hostname);
+            $mm->message("Your site has been configured and will be available shortly");
+        } else {
+            $mm->message("Hostname contains illegal characters");
+        }
     }
     # If we're still here, we're either editing or adding, so edit feature set
     $self->_edit_featureset($mm, $hosting, \%features) if $hosting;
@@ -47,33 +54,33 @@ sub list {
 
 sub _edit_featureset {
     my ($self, $mm, $hosting, $features) = @_;
-    for my $f (keys %$features) {
-        if ($mm->param("feature_$f")) {
-            # Can we?
-            unless ($features->{$f} > 0 or $features->{$f} == -1) {
-                # It won't be displayed in the interface but they may be evil
-                $mm->message("Your account does not allow you to add $f to your web hosting.");
-                next;
-            }
-            my $path = $mm->param("path_${f}");
+    # Remove feature / add feature
+    if (my $f = $mm->param("addfeature")) { 
+        if ($features->{$f} < 1 and $features->{$f} != -1) {
+            # It won't be displayed in the interface but they may be evil
+            $mm->message("Your account does not allow you to add $f to your web hosting.");
+        } else {  
+            my $path = $mm->param("path");
             # XXX Check path
             my $fobj = Kirin::DB::WebhostingFeature->create({
                 hosting => $hosting, feature => $f, path => $path
             });
+            $mm->message("Feature added");
             $self->_add_todo($mm, add_feature => 
                 join ":", $hosting->hostname, $fobj->feature, $fobj->path);
-        } else {
-            # Turn off (and fix histogram) if needed
-            my ($fobj) = Kirin::DB::WebhostingFeature->search(
-                hosting => $hosting,
-                feature => $f
-            );
-            next unless $fobj;
-            $features->{$f}++;
-            $self->_add_todo($mm, remove_feature => 
-                join ":", $hosting->hostname, $fobj->feature, $fobj->path);
-            $fobj->delete;
+        } 
+    }
+    if (my $f = $mm->param("rmfeature")) {
+        my ($fobj) = Kirin::DB::WebhostingFeature->retrieve($f);
+        return unless $fobj;
+        if ($fobj->hosting != $hosting) {
+            $mm->message("That's not yours to remove!");
         }
+        $features->{$fobj->feature}++ unless $features->{$fobj->feature} = -1;
+        $self->_add_todo($mm, remove_feature => 
+                join ":", $hosting->hostname, $fobj->feature, $fobj->path);
+        $fobj->delete;
+        $mm->message("Feature removed");
     }
 }
 
