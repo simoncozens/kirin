@@ -182,7 +182,7 @@ sub _purchase_ssl_cert {
     my $cart = $enom->AddToCart(
         EndUserIP   => $ip,
         ProductType => $args{ProductType},
-        Quantity    => 1,
+        Quantity    => $args{NumYears} || 1,
         ClearItems  => 1
     );
     warn Dumper($cart) if $debug;
