@@ -1,6 +1,7 @@
 package Kirin::Plugin;
 use List::Util qw/sum/;
 use constant INFINITY => -1;
+use DBI;
 use UNIVERSAL::moniker;
 use UNIVERSAL::require;
 use Net::DNS qw/rrsort/;
@@ -63,12 +64,20 @@ sub _ensure_table {
     my $db_class = $self; $db_class =~ s/Plugin/DB/;
     if (!$db_class->can("sql")) { die "Don't know how to set up that table" }
     warn "Setting up the database table for ".$self->name."\n";
+    $self->_do_sql($db_class->sql);
+    warn "Table added, carrying on...\n";
+    Kirin::DB->setup_main_db();
+}
+
+sub _do_sql {
+    my ($self, $sql) = @_;
     my $dbh = DBI->connect(Kirin->args->{dsn}, Kirin->args->{database_user}, Kirin->args->{database_password});
-    for (split /;/, $db_class->sql) { 
+    # Translate SQLite SQL to other dbs
+    if (Kirin->args->{dsn} =~ /mysql/i) { $sql =~ s/primary key/primary key auto_increment/g }
+    elsif (Kirin->args->{dsn} =~ /Pg/) { $sql =~ s/integer primary key not null/serial/g }
+    for (split /;/, $sql) { 
         $dbh->do($_) if /\w/;
     }
-    Kirin::DB->setup_main_db();
-    warn "Table added, carrying on...\n";
 }
 
 sub _is_hosted_by {
