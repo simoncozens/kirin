@@ -24,15 +24,6 @@ CREATE TABLE customer ( id integer primary key not null,
     accountscode char(10) 
 ); 
 
-
-CREATE TABLE acl ( 
-    id integer primary key not null, 
-    user integer, 
-    domain integer, 
-    action varchar(255), 
-    yesno integer 
-);
-
 CREATE TABLE admin ( id integer primary key not null, user integer, customer integer);
 CREATE TABLE invoice (id integer primary key not null,
     customer integer,
