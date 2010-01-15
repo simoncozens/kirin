@@ -85,13 +85,3 @@ CREATE TABLE jobqueue (
     parameters text
 );
 
-/* Some dummy data */
-
-INSERT INTO user    values (1, "root", "$1$qbq/wA6Q$C5p.bx1UbNWIu70p8fh18/", 0); /*test*/
-INSERT INTO user    values (2, "simon", "$1$qbq/wA6Q$C5p.bx1UbNWIu70p8fh18/", 1); /*test*/
-INSERT INTO admin   values (1, 2, 1);
-INSERT INTO acl      values (1, 1, "*", "*", 1);
-
-INSERT INTO customer values (1, "Simon", "Cozens", "NetThink", "Somewhere", 
- "Gloucester", "Glos", "UK", "GL2 0PX", "0500 123456", NULL,
- "simon@simon-cozens.org", "foo", "ok", NULL, NULL, NULL, NULL); 
