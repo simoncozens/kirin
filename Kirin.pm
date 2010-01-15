@@ -62,6 +62,8 @@ sub authenticate {
         } elsif (!try_to_login($self)) {
             return $self->respond("login");
         }
+    } elsif ($self->{req}->path eq "/signup") { # But we have signed up!
+        $self->{req}->path("/");
     }
     $self->{user} = Kirin::DB::User->retrieve($sess->get("user"));
     if (my $cid = $self->param("cid")) {
