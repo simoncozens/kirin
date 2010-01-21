@@ -167,4 +167,16 @@ sub no_more {
     $self->message("You can't add any more $what; do you need to purchase more services?");
 }
 
+sub cronjobhelper {
+    my ($plugin, $package) = @_;
+    for my $job (Kirin::DB::Jobqueue->search(plugin => $plugin)) {
+        my $user = $job->customer->find_user();
+        die "Customer doesn't have a user account!" unless $user;
+        my @args = split /:/, $job->parameters;
+        my $method = $job->method;
+        if ($package->can($method)) { $package->$method($user, @args) }
+        $job->delete;
+    }
+}   
+
 1;
