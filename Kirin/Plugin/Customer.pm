@@ -151,4 +151,6 @@ sub bill_for {
     }
 }
 
+sub find_user { Kirin::DB::User->search(customer => shift->id); }
+
 1;
