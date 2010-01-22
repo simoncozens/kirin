@@ -24,7 +24,7 @@ sub list {
     }
 
     if ($mm->param("deletehosting") and $hosting) { 
-        $self->_add_todo($mm, delete => $hosting->hostname);
+        $self->_add_todo($mm, delete => $hosting->hostname, $domain->domainname);
         $hosting->delete;
         goto done;
     }
@@ -36,7 +36,7 @@ sub list {
         if ($hostname =~ /^$RE{dns}{data}{cname}$/) {
             $hosting = Kirin::DB::Webhosting->create({
                 domain => $domain, hostname => $hostname });
-            $self->_add_todo($mm, create => $hosting->hostname);
+            $self->_add_todo($mm, create => $hosting->hostname, $domain->domainname);
             $mm->message("Your site has been configured and will be available shortly");
         } else {
             $mm->message("Hostname contains illegal characters");
@@ -67,7 +67,7 @@ sub _edit_featureset {
             });
             $mm->message("Feature added");
             $self->_add_todo($mm, add_feature => 
-                join ":", $hosting->hostname, $fobj->feature, $fobj->path);
+                join ":", $hosting->id, $fobj->feature, $fobj->path);
         } 
     }
     if (my $f = $mm->param("rmfeature")) {
@@ -78,7 +78,7 @@ sub _edit_featureset {
         }
         $features->{$fobj->feature}++ unless $features->{$fobj->feature} = -1;
         $self->_add_todo($mm, remove_feature => 
-                join ":", $hosting->hostname, $fobj->feature, $fobj->path);
+                join ":", $hosting->id, $fobj->feature, $fobj->path);
         $fobj->delete;
         $mm->message("Feature removed");
     }

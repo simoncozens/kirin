@@ -1,0 +1,53 @@
+#!/usr/bin/perl
+# Run me from cron as
+#  perl -I/path/to/kirin apache-mvh-webhosting
+use strict;
+use warnings;
+do 'kirin.pl';
+
+Kirin->cronjobhelper("webhosting", "Execute");
+
+package Execute;
+use User::pwent;
+use File::Path qw/remove_tree/;
+
+sub _paths {
+    my ($hostname, $domainname, $user) = @_;
+    my $user_ent = pwent($user->username);
+    my $sub;
+    if ($hosting->hostname eq $dn or $hosting->hostname eq "www.$dn") {
+        $sub = "website";
+    } else { ($sub) = $hosting->hostname =~ /^(\w+)\./; }
+
+    # www.$dn -> ~/$dn/website/ ($sub = "website")
+    # $dn     -> ~/$dn/website/ ($sub = "website")
+    # foo.$dn -> ~/$dn/foo/     ($sub = first part of hosting name)
+    $user_symlink = $user_ent->dir. "/$dn/$sub";
+
+    $real_webhome = '/users/freehosting/' . substr($dn, 0,1) . '/' . $hosting->hostname;
+    return ( $real_webhome, $user_symlink);
+}
+
+sub create {
+    my ($self, $user, $hostname, $domain) = @_;
+    return unless $user;
+    my ($real_webhome, $user_symlink) = _paths($hostname, $domain, $user);
+
+    if ( ! -e $real_webhome) { 
+        mkdir $real_webhome; 
+        # Grant appropriate permissions - HELP!
+    }
+
+    if ( -e $user_symlink and 
+        readlink $user_symlink ne $real_webhome) { unlink($user_symlink) }
+    if ( ! -e $user_symlink) { symlink($real_webhome, $user_symlink); }
+}
+
+sub delete {
+    my ($self, $user, $hostname, $domain) = @_;
+    return unless $user;
+    my ($real_webhome, $user_symlink) = _paths($hostname, $domain, $user);
+
+    unlink($user_symlink);
+    remove_tree($real_webhome); # Archive it? Bah, we've got backups...
+}
