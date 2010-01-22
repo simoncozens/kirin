@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Run me from cron as
 #  perl -I/path/to/kirin apache-mvh-webhosting
-# as root or with permissions to write on the webdirectory and sudo to chown
+# as root
 use strict;
 use warnings;
 do 'kirin.pl';
@@ -39,7 +39,7 @@ sub create {
     if ( ! -e $real_webhome) { 
         mkdir $real_webhome; 
         chmod 0705, $real_webhome;
-        system("sudo chown $user".($main::gid ? ":$main::gid" :"")." $real_webhome");
+        chown pwent($user)->id, ($main::gid || -1), $real_webhome;
     }
 
     if ( -e $user_symlink and 
