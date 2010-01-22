@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use constant UIDBASE => 0; # Change this if NSS settings require
+use User::pwent;
 
 my ($dsn, $user, $password) = @ARGV
     or die "You need to supply DSN, username and password";
@@ -32,7 +32,7 @@ sub create {
     }
 
     $dbh->do("INSERT INTO virtual VALUES (?,?,?)", undef, 
-        $address, $mailbox . "/Maildir/", main::UIDBASE + $user->id)
+        $address, $mailbox . "/Maildir/", pwent($username)->uid)
         or die "Couldn't insert into virtual ".$dbh->errstr;
 
     $dbh->do("INSERT INTO popbox VALUES (?,?,?,?,?)", undef, 
