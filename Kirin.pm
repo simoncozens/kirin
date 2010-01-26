@@ -65,7 +65,8 @@ sub authenticate {
     } elsif ($self->{req}->path eq "/signup") { # But we have signed up!
         $self->{req}->path("/");
     }
-    $self->{user} = Kirin::DB::User->retrieve($sess->get("user"));
+    $self->{user} = Kirin::DB::User->retrieve($sess->get("user")) 
+        or return $self->respond("403handler"); # Done gone screwed up
     if (my $cid = $self->param("cid")) {
         my $customer = Kirin::DB::Customer->retrieve($cid);
         warn "XXX ACL check here";
