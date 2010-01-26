@@ -4,7 +4,7 @@
 [% MACRO  add_form BLOCK %]
 <form method="post">
     <input type="hidden" name="adding" value="1">
-    <p>Database name: <input name="dbname"></p>
+    <p>Database name: [% username _ "_" | html %]<input name="dbname"></p>
     <p>Password: <input name="pass1" type="password"></p>
     <p>Confirm password: <input name="pass2" type="password"></p>
     <input type="submit">

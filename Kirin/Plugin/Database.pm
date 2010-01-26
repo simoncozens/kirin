@@ -8,15 +8,15 @@ sub default_action { "list" }
 sub list {
     my ($self, $mm) = @_;
     my @databases = $mm->{customer}->databases;
+    my $username = $mm->{user}->username;
+    $username = "mdb" . $mm->{user}->id
+        if length $username > MAX_USERNAME_LEN;
 
     if ($mm->param("adding") and my $dbname = $mm->param("dbname")) {
-        my $username = $mm->{user}->username;
-        $username = "mdb" . $mm->{user}->id
-            if length $username > MAX_USERNAME_LEN;
-
         # All of the things that can possibly go wrong
         my ($dbp1, $dbp2) = ($mm->param("pass1"), $mm->param("pass2"));
         my $db;
+        $dbname = $username."_".$dbname; # Try to be globally unique
         if (!$self->_can_add_more($mm->{customer})) {    # No can do
             $mm->no_more("databases");
         } elsif ($dbname !~ /^\w+$/) {
@@ -48,6 +48,7 @@ sub list {
 
     # XXX Pager
     $mm->respond("plugins/database/list", databases => \@databases,
+        username => $username,
         addable => $self->_can_add_more($mm->{customer}));
 }
 
