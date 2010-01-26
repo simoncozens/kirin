@@ -55,6 +55,11 @@ sub _handle_cancel_request {
     if ($self->_quota($customer) - $service->parameter >= 0) {
         return 1;
     }
+    Kirin::Utils->email_boss(severity => "info",
+        context => "cancelling rsync account ".$ac->login,
+        message => "Please ensure that the storage is cleared out on rsync.net",
+        customer => $customer
+    );
     $ac->customer(0);
     $ac->update();
     return 1;
