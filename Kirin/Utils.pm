@@ -9,9 +9,9 @@ sub email_boss {
     my $email = <<EOF;
 From: Kirin Domain Management System <kirin\@localhost>
 To: @{[$boss->forename. " ". $boss->surname. " <". $boss->email.">"]} 
-Subject: [$args{severity}] Problem with Kirin
+Subject: [$args{severity}] Notification from Kirin
 
-While Kirin was $args{context} an error occured:
+While Kirin was $args{context} the following event occured:
 
 $args{message}
 
