@@ -10,6 +10,7 @@ use Authen::Passphrase;
 use Authen::Passphrase::MD5Crypt;
 require Module::Pluggable;
 our %map;
+use Storable qw/freeze thaw/;
 use Plack::Builder;
 use UNIVERSAL::require;
 
@@ -40,6 +41,46 @@ sub app {
     };
 }
 
+sub save_context {
+    my ($self, $sess) = @_;
+    # Save request path, CGI params
+    $sess->set("context", freeze({ 
+        path => $self->{req}->path,
+        params => $self->{req}->parameters
+    }));
+}
+
+sub restore_context {
+    my ($self, $sess) = @_;
+    if (my $context = $sess->get("context")) {
+        $context = thaw($context);
+        $self->{req}->path($context->{path});
+        $self->{req}->parameters($context->{params});
+        $sess->set("context", undef);
+    }
+}
+
+sub ensure_user {
+    my ($self, $sess) = @_;
+    if (!$sess->get("user")) {
+        if ($self->{req}->path eq "/signup") {
+            if (!try_to_add_new_user($self)) { 
+                return $self->respond("signup");
+            }
+        } elsif (!try_to_login($self)) {
+            $self->save_context($sess);
+            return $self->respond("login");
+        } else {
+            #$self->save_context($sess);
+        }
+    } elsif ($self->{req}->path eq "/signup") { # But we have signed up!
+        #$self->restore_context($sess);
+    }
+    $self->{user} = Kirin::DB::User->retrieve($sess->get("user")) 
+        or return $self->respond("403handler"); # Done gone screwed up
+    return; # OK
+}
+
 sub authenticate {
     my $self = shift;
 
@@ -52,21 +93,9 @@ sub authenticate {
 
     my $sess = $self->{req}->env->{"plack.session"};
     if ($self->{req}->path eq "/logout") { $sess->set("user","") }
-    if (!$sess->get("user")) {
-        if ($self->{req}->path eq "/signup") {
-            if (try_to_add_new_user($self)) { 
-                $self->{req}->path("/");
-            } else { 
-                return $self->respond("signup");
-            }
-        } elsif (!try_to_login($self)) {
-            return $self->respond("login");
-        }
-    } elsif ($self->{req}->path eq "/signup") { # But we have signed up!
-        $self->{req}->path("/");
-    }
-    $self->{user} = Kirin::DB::User->retrieve($sess->get("user")) 
-        or return $self->respond("403handler"); # Done gone screwed up
+
+    my $redirect = $self->ensure_user($sess); return $redirect if $redirect;
+
     if (my $cid = $self->param("cid")) {
         my $customer = Kirin::DB::Customer->retrieve($cid);
         warn "XXX ACL check here";
@@ -79,8 +108,12 @@ sub authenticate {
     }
     $self->{customer} ||= $self->{user}->customer;
     if (!$self->{customer} and !try_to_add_customer($self, $sess)) {
+        $self->restore_context($sess);
+        $self->save_context($sess);
         return $self->respond("add_customer");
     }
+    # If we get here - where were we going?
+    $self->restore_context($sess);
     return;
 }
 

@@ -23,7 +23,7 @@
 
  [% ELSE%]
     <p>[%p.cost%]/[%p.duration%]</p>
-<form method="post">
+<form method="post" action="buyproduct">
 <input type="hidden" value="[%p.id%]" name="buyproduct">
 <input type="submit" value="Buy">
 </form>

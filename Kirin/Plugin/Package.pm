@@ -3,6 +3,9 @@ use base 'Kirin::Plugin';
 sub name { "package" }
 sub user_name { "Products" }
 sub default_action { "list" }
+sub _skip_auth { "list" }
+
+sub buyproduct { goto &list } # It's the same but you have to be logged in
 
 sub list {
     my ($self, $mm, $action) = @_;
@@ -35,6 +38,12 @@ sub list {
         packages => \@packages,
         categories => [ keys %categories ]
     );
+}
+
+sub edit {
+    my ($self, $mm, $action) = @_;
+    if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
+
 }
 
 sub _setup_db {
