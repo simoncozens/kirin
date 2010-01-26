@@ -1,5 +1,5 @@
 CREATE TABLE user ( id integer primary key not null,
-    username varchar(50) NOT NULL, 
+    username varchar(50) NOT NULL unique, 
     password varchar(40) NOT NULL, 
     customer integer 
 );
