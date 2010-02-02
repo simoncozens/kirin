@@ -23,6 +23,7 @@ sub _account_for_invoice {
             Name => $cust->forename." ".$cust->surname,
             # ...
         });
+        if (!$c) { die "Couldn't create customer in Kashflow" }
     }
     my $i = $kf->create_invoice({
         InvoiceNumber => $invoice->id,
