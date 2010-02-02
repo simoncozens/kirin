@@ -14,6 +14,16 @@ sub list {
     my @invoices = $mm->{user}->is_root ? Kirin::DB::Invoice->retrieve_all()
                                         : $mm->{customer}->invoices;
     # XXX Pager
+    my $i_id;
+    if ($i_id = $mm->param("markpaid") 
+        and my $i = Kirin::DB::Invoice->retrieve($i_id)) {
+        if (!$mm->{user}->is_root) {
+            $mm->message("You can't do that!");
+        } else {
+            $i->mark_paid();
+            $mm->message("Invoice ".$i->id." marked paid");
+        }
+    }
     $mm->respond("plugins/invoice/list", invoices => \@invoices);
 }
 

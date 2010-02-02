@@ -12,6 +12,12 @@ Issued ([%i.issuedate%])
 </td>
 <td>[%money(i.total)%]</td>
 <td> <a href="/invoice/view/[%i.id%]">Click here to view</a></td>
+[% IF self.user.is_root %]
+<td>
+<form method="post"><input type="hidden" name="markpaid" value="[%i.id%]"><input type="submit" value="Mark Paid">
+</form>
+</td>
+[% END %]
 </tr>
 [% END %]
 </table>
