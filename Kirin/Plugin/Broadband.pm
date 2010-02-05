@@ -10,6 +10,8 @@ sub order {
     my ($self, $mm) = @_;
     if (my $clid = $mm->param("clid")) {
         my %avail = $murphx->services_available($clid);
+        return $mm->respond("plugins/broadband/signup",
+            services => \%avail);
     }
 }
 
@@ -19,7 +21,9 @@ sub view {
     if (my $bb = $mm->{customer}->broadband) { 
         # Get current bandwidth usage info - force update, and history 
         # will be available to the template as broadband.usage_reports
-        $bb->get_current_bandwidth(undef,undef,1);
+        # You may wish to rely on a cached one instead, but for the
+        # purposes...
+        $bb->get_bandwidth_for(undef,undef); #,1);
         # Get any other status we care about
         # XXX How do I find out how much bandwidth allowance we have?
 
@@ -27,7 +31,7 @@ sub view {
             broadband => $bb,
         );
     } else {
-        return $mm->respond("plugins/broadband/signup");
+        return $mm->respond("plugins/broadband/get-clid");
     }
 }
 
@@ -40,6 +44,7 @@ sub _setup_db {
     Kirin->args->{$_}
         || die "You need to configure $_ in your Kirin configuration"
         for qw/murphx_username murphx_password murphx_clientid/;
+    use Net::DSLProvider::Murphx; # XXX
     $murphx = Net::DSLProvider::Murphx->new({
         user => Kirin->args->{murphx_username},
         pass => Kirin->args->{murphx_password},
@@ -60,7 +65,8 @@ package Kirin::DB::Broadband;
 sub provider_handle {
     my $self = shift;
     my $p = $self->provider;
-    my $module = "Net::DSL::Provider::".ucfirst($p);
+    my $module = "Net::DSLProvider::".ucfirst($p);
+    $module->require or die "Can't find a provider module for $p:$@";
     $module->new({ 
         user     => Kirin->args->{"${p}_username"},
         pass     => Kirin->args->{"${p}_password"},
@@ -73,14 +79,14 @@ sub get_bandwidth_for {
     $year ||= 1900 + (localtime)[5];
     $mon  ||= 1    + (localtime)[4];
     $mon = sprintf("%02d", $mon);
-    my $bw = $self->usage_reports(year => $year, mon => $mon);
+    my ($bw) = $self->usage_reports(year => $year, month => $mon);
     if ($bw and !$replace) {
         return ($bw->input, $bw->output);
     }
     my %summary = $self->provider_handle->usage_summary(
         "service-id" => $self->token,
         year => $year,
-        mon => $mon
+        month => $mon
     );
     if ($bw) { 
         $bw->input($summary{"total-input-octets"});
@@ -88,7 +94,7 @@ sub get_bandwidth_for {
     } else {
         $self->add_to_usage_reports({
             year => $year,
-            mon => $mon,
+            month => $mon,
             input => $summary{"total-input-octets"},
             output => $summary{"total-output-octets"},
         });
@@ -111,13 +117,13 @@ CREATE TABLE IF NOT EXISTS broadband_event (
     broadband integer
 );
 
-CREATE TABLE IF NOT EXISTS broadband_bandwidth (
+CREATE TABLE IF NOT EXISTS broadband_usage (
     id integer primary key not null,
     broadband integer,
     year integer,
     month integer,
     input integer,
     output integer    
-
+);
 /}
 1;

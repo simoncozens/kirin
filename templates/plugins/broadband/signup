@@ -1,0 +1,17 @@
+[% IF services.size > 0 %]
+<h2>Sign up for broadband</h2>
+
+<form method="post">
+<input type="hidden" name="clid" value="[%clid|html%]">
+<p> Service: <select name="service">
+[% SET k = "product-name"; FOR s=services.keys %]
+    <option value="[% s |html%]">[% services.$s.$k%]</option>
+[% END %]
+</select>
+</form>
+
+[% ELSE %]
+<h2> Sorry </h2>
+
+<p>It seems we cannot provide any services in your area.</p>
+[% END %]

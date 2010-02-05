@@ -1,0 +1,13 @@
+<h2> DSL Status </h2>
+
+<p> You are currently receiving [% broadband.packagename %] </p>
+<p> Your login details are: </p>
+<h3> Bandwidth usage </h3>
+<table>
+<tr><th>Date</th><th>Incoming</th><th>Outgoing</th></tr>
+[% FOR i = broadband.usage_reports %]
+<tr><td>[%i.year%]-[%i.month|
+format("%02d")%]</td><td>[%i.input%]Mb</td><td>[%i.output%]Mb</td></tr>
+[% END %]
+</table>
+

@@ -1,0 +1,23 @@
+<h2>Broadband</h2>
+
+<p>
+You do not currently have a broadband connection with us.
+In order to see which services we can supply to you, please enter your
+telephone number here:
+</p>
+<form action="order" method="post">
+<input name="clid" value="[%self.customer.phone|html%]">
+<input type="submit">
+</form>
+
+<p> Please note that we will be supplying broadband to the address
+supplied in your customer profile:</p>
+<address>
+[%self.customer.address |html%]<br>
+[%self.customer.town |html%]<br>
+[%self.customer.county |html%]<br>
+[%self.customer.postcode |html%]
+</address>
+<p> If you wish broadband to be supplied to a different address, please
+<p><a href="/customer/add">create a new customer profile</a> and try
+again.</p>
