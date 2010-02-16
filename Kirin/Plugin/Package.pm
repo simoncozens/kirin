@@ -44,10 +44,21 @@ sub edit {
     my ($self, $mm) = @_;
     if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
     if ($mm->param("create")) { 
-    } elsif (my $id = $mm->param("editpackage"))
+        if (!$mm->param("category")) {
+            $mm->message("Package must have a category");
+        } elsif (!$mm->param("name")) { 
+            $mm->message("Package must have a name");
+        } else {
+            my $package = Kirin::DB::Package->create({
+                map { $_ => $mm->param($_) }
+                    qw/name category cost description duration/
+            });
+            $mm->message("Package created") if $package;
+        }
+    } elsif (my $id = $mm->param("editpackage")) {
         my $package = Kirin::DB::Package->retrieve($id);
         if ($package) {
-            for (qw/description price category duration/) {
+            for (qw/description cost category duration/) {
                 $package->$_($mm->param($_));
             }
         }

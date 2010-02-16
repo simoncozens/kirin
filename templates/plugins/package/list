@@ -1,3 +1,18 @@
+[% MACRO edit_package_basics(label,p) BLOCK; %]
+<p><input name="cost" value="[%p.cost|html%]"> / 
+    <select name="duration">
+        <option value="month" [% IF p.duration == "month"%]selected[%END%]>Month</option>
+        <option value="year" [% IF p.duration == "year"%]selected[%END%]>Year</option>
+    </select>
+<input type="submit" value="[%label%]">
+</p>
+<p>Category: <input name="category" value="[%p.category|html%]"></p>
+<p>Description:</p>
+<textarea name="description" style="width:80%; min-height:120px">
+    [%p.description | html %]
+</textarea>
+[% END %]
+
 <h2> Packages available </h2>
 <select id="catSelect" onchange="changeCategory()">
     [% FOR c = categories %]
@@ -24,18 +39,8 @@
  [% ELSE%]
     [% IF self.user.is_root%]
         <form method="post" action="edit">
-        <input type="hidden" value="[%p.id]" name="editpackage">
-        <p><input name="cost" value="[%p.cost|html%]"> / 
-            <select name="duration">
-                <option value="month" [% IF p.duration == "month"%]selected[%END%]>Month</option>
-                <option value="year" [% IF p.duration == "year"%]selected[%END%]>Year</option>
-            </select>
-        <input type="submit" name="Edit 
-        </p>
-        <p>Category: <input name="category" value="[%p.category|html%]"></p>
-        <textarea name="description" style="width:80%; min-height:120px">
-            [%p.description | html %]
-        </textarea>
+        <input type="hidden" value="[%p.id%]" name="editpackage">
+        [% edit_package_basics("Edit Package",p) %]
         </form>
     [% ELSE %]
         <p>[%p.cost%]/[%p.duration%]</p>
@@ -48,6 +53,7 @@
 [% END %]
     [% IF self.user.is_root %]
         <table>
+            <tr><th>Name</th><th>Plugin</th><th>Parameter</th></tr>
             [% FOR service = p.services %]
             <tr>
                 <td> [%service.name %] </td>
@@ -83,6 +89,17 @@
     </div>
     [% END %]
 </div>
+[% END %]
+
+[% IF self.user.is_root %]
+<h2> Add a new package </h2>
+
+    <form method="post" action="edit">
+    <input type="hidden" name="create" value="1">
+    <p>Name: <input name="name"></p>
+    [% edit_package_basics("Create Package") %]
+    </form>
+
 [% END %]
 <script>
 $(".details").hide();
