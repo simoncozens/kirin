@@ -6,8 +6,6 @@ sub user_name      { "POP Mailboxes" }
 sub default_action { "list" }
 my $ourprimary = Kirin->args->{mx_server}
     or die "You need to set mx_server in the Kirin configuration";
-use Data::Password::BasicCheck;
-my $checker = Data::Password::BasicCheck->new(5,20,0);
 
 Kirin::Plugin::Pop->relates_to("Kirin::Plugin::Domain");
 
@@ -56,12 +54,7 @@ sub _validate {
         if ($pass ne $mm->param("pass2")) {
             $mm->message("Passwords don't match"); return;
         }
-        my $check = $checker->check($pass, $name, $domainname,
-            $mm->{customer}->forename, $mm->{customer}->surname);
-        if ($check == 1) { $mm->message("Password too short"); return }
-        if ($check == 3) { $mm->message("Password must contain a mix of alphabetic characters, numbers and symbols"); return }
-        if ($check == 4) { $mm->message("Not enough different characters in password"); return }
-        if ($check == 6) { $mm->message("Password is based on personal information"); return }
+        return unless $self->_validate_password($mm, $pass, $name, $domainname);
     }
     my $id = $mm->param("id");
     my $r;

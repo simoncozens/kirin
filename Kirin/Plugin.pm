@@ -5,6 +5,8 @@ use DBI;
 use UNIVERSAL::moniker;
 use UNIVERSAL::require;
 use Net::DNS qw/rrsort/;
+use Data::Password::BasicCheck;
+
 sub name { shift->moniker }
 sub user_name {
     my $name = shift->name;
@@ -16,6 +18,7 @@ sub _skip_auth { }
 sub exposed_to { 1 }
 
 my %relations = ();
+my $checker = Data::Password::BasicCheck->new(5,20,0);
 
 sub relations { @{ $relations{+shift} || [] } }
 sub relates_to {
@@ -111,4 +114,16 @@ sub _add_todo {
             parameters => $param
     });
 }
+
+sub _validate_password {
+    my ($self, $mm, $pass, @data) = @_;
+    my $check = $checker->check($pass, @data,
+        $mm->{customer}->forename, $mm->{customer}->surname);
+    if ($check == 1) { $mm->message("Password too short"); return }
+    if ($check == 3) { $mm->message("Password must contain a mix of alphabetic characters, numbers and symbols"); return }
+    if ($check == 4) { $mm->message("Not enough different characters in password"); return }
+    if ($check == 6) { $mm->message("Password is based on personal information"); return }
+    return 1;
+}
+
 1;
