@@ -169,7 +169,12 @@ sub try_to_add_new_user {
         )->as_crypt
     }) };
     $self->message("That username has already been taken"), return
-        unless $user; # Already exists - XXX add unique constraint to DB
+        unless $user; # Already exists 
+    Kirin::DB::Jobqueue->find_or_create({
+        plugin => "user",
+        method => "setup",
+        parameters => $user->id
+    });
     $self->{req}->env->{"plack.session"}->set("user" => $user->id);
     $self->{req}->env->{"plack.session"}->set("customer" => "");
     return 1;
