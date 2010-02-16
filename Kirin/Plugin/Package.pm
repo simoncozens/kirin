@@ -61,8 +61,9 @@ sub edit {
             for (qw/description cost category duration/) {
                 $package->$_($mm->param($_));
             }
+            $package->update;
+            $mm->message("Package updated");
         }
-        $mm->message("Package updated");
     } elsif (my $id = $mm->param("addtopackage")) {
         my $package = Kirin::DB::Package->retrieve($id);
         my $service = Kirin::DB::Service->find_or_create({
