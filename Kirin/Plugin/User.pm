@@ -8,8 +8,10 @@ sub edit {
     my $params = $mm->{req}->parameters();
     # Either: I am root and I'm editing another user, or I'm editing
     # myself
-    my $user = $mm->{user}->is_root ? Kirin::DB::User->retrieve($args[0]) 
-               : $mm->{user}; 
+    my $user;
+    if ($mm->{user}->is_root) { $user = Kirin::DB::User->retrieve($args[0]) }
+    $user ||= $mm->{user}; 
+
     if (my $pw = $mm->param("pw1")) {
         if ($pw ne $mm->param("pw2")) {
             $mm->message("Passwords don't match!")
