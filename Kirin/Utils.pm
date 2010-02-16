@@ -31,5 +31,15 @@ sub send_email {
     $sender->send($email);
 }
 
+sub gen_pass {
+    my ($self, @data) = @_;
+    my $pw;
+    my $checker = Data::Password::BasicCheck->new(5,20,0);
+    do {
+        $pw = "";
+        for (1..8+(rand(5))) { $pw .= $bits[rand @bits] }
+    } while $checker->check($pw, @data) =~ /^([1346]|127)$/;
+    return $pw;
+}
 1;
 
