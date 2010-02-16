@@ -22,20 +22,66 @@
     </form>
 
  [% ELSE%]
-    <p>[%p.cost%]/[%p.duration%]</p>
-<form method="post" action="buyproduct">
+    [% IF self.user.is_root%]
+        <form method="post" action="edit">
+        <input type="hidden" value="[%p.id]" name="editpackage">
+        <p><input name="cost" value="[%p.cost|html%]"> / 
+            <select name="duration">
+                <option value="month" [% IF p.duration == "month"%]selected[%END%]>Month</option>
+                <option value="year" [% IF p.duration == "year"%]selected[%END%]>Year</option>
+            </select>
+        <input type="submit" name="Edit 
+        </p>
+        <p>Category: <input name="category" value="[%p.category|html%]"></p>
+        <textarea name="description" style="width:80%; min-height:120px">
+            [%p.description | html %]
+        </textarea>
+        </form>
+    [% ELSE %]
+        <p>[%p.cost%]/[%p.duration%]</p>
+        <p>[%p.description |htmlpara%]</p>
+    [% END %]
+    <form method="post" action="buyproduct">
 <input type="hidden" value="[%p.id%]" name="buyproduct">
 <input type="submit" value="Buy">
 </form>
 [% END %]
-<div class="detailswrapper"><a onclick="showDetails(this)"> Details</a><div class="details">
-    <ul>
-    [% FOR service = p.services %]
-        <li> [% service.name %]
+    [% IF self.user.is_root %]
+        <table>
+            [% FOR service = p.services %]
+            <tr>
+                <td> [%service.name %] </td>
+                <td> [%service.plugin %] </td>
+                <td> [%service.parameter %] </td>
+                <td>
+                <form method="post" action="edit">
+                    <input type="hidden" name="package" value="[%p.id%]">
+                    <input type="hidden" name="dropfrompackage" value="[%service.id%]">
+                    <input type="submit" value="Drop">
+                </form>
+                </td>
+            </tr>
+            [% END %]
+            <form method="post" action="edit">
+                <input type="hidden" name="addtopackage" value="[%p.id%]">
+                <tr>
+                <td><input name="name"></td>
+                <td><input name="plugin"></td>
+                <td><input name="parameter"></td>
+                <td><input type="submit" value="Add">
+                </tr>
+            </form>
+        </table>
+    [% ELSE %]
+    <div class="detailswrapper"><a onclick="showDetails(this)"> Details</a><div class="details">
+        <ul>
+        [% FOR service = p.services %]
+            <li> [% service.name %]  </li>
+        [% END %]
+        </ul>
+    </div>
+    </div>
     [% END %]
-    </ul>
-</div>
-</div>
 </div>
 [% END %]
 <script>

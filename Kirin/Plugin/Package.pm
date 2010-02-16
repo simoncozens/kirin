@@ -8,7 +8,7 @@ sub _skip_auth { "list" }
 sub buyproduct { goto &list } # It's the same but you have to be logged in
 
 sub list {
-    my ($self, $mm, $action) = @_;
+    my ($self, $mm) = @_;
     if (my $buy = $mm->{req}->params()->{buyproduct}) {
         my $package =  Kirin::DB::Package->retrieve($buy);
         if ($package and $mm->{customer} and
@@ -41,9 +41,43 @@ sub list {
 }
 
 sub edit {
-    my ($self, $mm, $action) = @_;
+    my ($self, $mm) = @_;
     if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
-
+    if ($mm->param("create")) { 
+    } elsif (my $id = $mm->param("editpackage"))
+        my $package = Kirin::DB::Package->retrieve($id);
+        if ($package) {
+            for (qw/description price category duration/) {
+                $package->$_($mm->param($_));
+            }
+        }
+        $mm->message("Package updated");
+    } elsif (my $id = $mm->param("addtopackage")) {
+        my $package = Kirin::DB::Package->retrieve($id);
+        my $service = Kirin::DB::Service->find_or_create({
+            plugin    => $mm->param("plugin"),
+            parameter => $mm->param("parameter"),
+            name      => $mm->param("name"),
+        });
+        if ($package) {
+            $package->add_to_services($service);
+            $mm->message("Service added");
+        }
+    } elsif (my $id = $mm->param("dropfrompackage")) { 
+        # Check for subscriptions first!
+        my ($thing) = Kirin::DB::PackageService->search(
+            "package" => $mm->param("package"),
+            service   => $id
+        );
+        if ($thing) { $thing->delete; $mm->message("Service removed from package") }
+        if (!Kirin::DB::PackageService->search(service => $id)) {
+            Kirin::DB::Service->retrieve($id) 
+        }
+    } elsif (my $id = $mm->param("delete")) {
+        my $thing = Kirin::DB::Package->retrieve($id);
+        if ($thing) { $thing->delete; $mm->message("Package deleted") }
+    }
+    return $self->list($mm);
 }
 
 sub _setup_db {
