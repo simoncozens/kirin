@@ -14,8 +14,7 @@ sub edit {
         if ($pw ne $mm->param("pw2")) {
             $mm->message("Passwords don't match!")
         } elsif ($self->_validate_password($mm, $pw)) {
-            $mm->{user}->password($pw);
-            $mm->{user}->update;
+            $user->set_password($pw);
             $mm->message("Password changed");
         }
     }
@@ -44,6 +43,15 @@ sub my_customers {
 sub is_root {
     my $self = shift;
     $self->id == 1; # For now   
+}
+
+sub set_password {
+    my ($self, $pw) = @_;
+    $self->password(Authen::Passphrase::MD5Crypt->new(
+            salt_random => 1,
+            passphrase => $pw
+        )->as_crypt);
+    $self->update;
 }
 
 1;
