@@ -4,12 +4,23 @@ use base 'Kirin::Plugin';
 use Net::DSLProvider;
 sub user_name      { "Broadband" }
 sub default_action { "view" }
+use constant MAC_RE => qr/[A-Z0-9]{12,14}\/[A-Z]{2}[0-9]{2}[A-Z]/;
 my $murphx;
 
 sub order {
     my ($self, $mm) = @_;
     if (my $clid = $mm->param("clid")) {
-        my %avail = $murphx->services_available($clid);
+        my $mac;
+        if ($mac = uc $mm->param("mac")) {
+            if ($mac !~ MAC_RE) {
+                $mm->message("That MAC was not well-formed; please check.");
+                return $mm->respond("plugins/broadband/get-clid");
+            }
+        } 
+        my %avail = $murphx->services_available(
+            cli => $clid,
+            defined $mac ? (mac => $mac) : ()
+        );
         return $mm->respond("plugins/broadband/signup",
             services => \%avail);
     }

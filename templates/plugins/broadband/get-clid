@@ -7,6 +7,10 @@ telephone number here:
 </p>
 <form action="order" method="post">
 <input name="clid" value="[%self.customer.phone|html%]">
+<p>
+If you have a MAC code from an existing supplier, please enter it here:
+</p>
+<input name="mac" value="">
 <input type="submit">
 </form>
 
