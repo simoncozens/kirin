@@ -118,11 +118,13 @@ sub _add_todo {
 sub _validate_password {
     my ($self, $mm, $pass, @data) = @_;
     my $check = $checker->check($pass, @data,
-        $mm->{customer}->forename, $mm->{customer}->surname);
+        $mm->{customer} ? ($mm->{customer}->forename, $mm->{customer}->surname) : ()
+    );
     if ($check == 1) { $mm->message("Password too short"); return }
     if ($check == 3) { $mm->message("Password must contain a mix of alphabetic characters, numbers and symbols"); return }
     if ($check == 4) { $mm->message("Not enough different characters in password"); return }
     if ($check == 6) { $mm->message("Password is based on personal information"); return }
+    if ($check == 127) { $mm->message("Password is incredibly weak") }
     return 1;
 }
 
