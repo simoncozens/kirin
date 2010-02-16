@@ -88,13 +88,13 @@ sub authenticate {
     my $path = $self->{req}->path; $path =~ s/^\/+//;
     my ($noun, $verb, @args) = split /\//,  $path;
     $noun =~ s/_(\w)/\U$1/g; my $class = $self->{model_prefix}."::".ucfirst($noun);
-    return if UNIVERSAL::isa($class, "Kirin::Plugin") 
-                and { map {$_=>1} $class->_skip_auth()}->{$verb};
-
     my $sess = $self->{req}->env->{"plack.session"};
     if ($self->{req}->path eq "/logout") { $sess->set("user","") }
 
-    my $redirect = $self->ensure_user($sess); return $redirect if $redirect;
+    my $redirect = $self->ensure_user($sess); 
+    return if UNIVERSAL::isa($class, "Kirin::Plugin") 
+                and { map {$_=>1} $class->_skip_auth()}->{$verb};
+    return $redirect if $redirect;
 
     if (my $cid = $self->param("cid")) {
         my $customer = Kirin::DB::Customer->retrieve($cid);
