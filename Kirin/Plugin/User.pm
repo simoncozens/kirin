@@ -10,7 +10,15 @@ sub edit {
     # myself
     my $user = $mm->{user}->is_root ? Kirin::DB::User->retrieve($args[0]) 
                : $mm->{user}; 
-    $self->_edit($mm, $user);
+    if (my $pw = $mm->param("pw1")) {
+        if ($pw ne $mm->param("pw2")) {
+            $mm->message("Passwords don't match!")
+        } elsif ($self->_validate_password($mm, $pw)) {
+            $mm->{user}->password($pw);
+            $mm->{user}->update;
+            $mm->message("Password changed");
+        }
+    }
     $mm->respond("plugins/user/edit", user => $user);
 }
 
