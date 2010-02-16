@@ -91,6 +91,9 @@ sub authenticate {
     my $sess = $self->{req}->env->{"plack.session"};
     if ($self->{req}->path eq "/logout") { $sess->set("user","") }
 
+    if ($self->{req}->path eq "/forgot_password") {
+        return $self->forgot_password;
+    }
     my $redirect = $self->ensure_user($sess); 
     return if UNIVERSAL::isa($class, "Kirin::Plugin") 
                 and { map {$_=>1} $class->_skip_auth()}->{$verb};
@@ -154,6 +157,22 @@ sub try_to_login {
     return 0;
 }
 
+sub forgot_password {
+    my $self = shift;
+    my ($u, $user);
+    if ($u = $self->param("username") and 
+        ($user) = Kirin::DB::User->search(username => $u)) {
+        my $pw = Kirin::Utils->gen_pass($u);
+        $user->set_password($pw);
+        Kirin::Utils->templated_email(
+           template => "password_reset",
+           user => $user,
+           password => $pw);
+        return $self->respond("password_reset");
+    }
+    $self->respond("forgot_password");
+}
+
 sub try_to_add_new_user {
     # XXX Check captcha
     my $self = shift;
@@ -163,13 +182,10 @@ sub try_to_add_new_user {
            and $p = $self->param("password");
     my $user  = eval { Kirin::DB::User->create({ 
         username => $u,
-        password => Authen::Passphrase::MD5Crypt->new(
-            salt_random => 1,
-            passphrase => $p
-        )->as_crypt
     }) };
     $self->message("That username has already been taken"), return
         unless $user; # Already exists 
+    $user->set_password($p);
     Kirin::DB::Jobqueue->find_or_create({
         plugin => "user",
         method => "setup",
@@ -205,6 +221,7 @@ sub no_more {
     my ($self, $what) = @_;
     $self->message("You can't add any more $what; do you need to purchase more services?");
 }
+
 
 sub cronjobhelper {
     my ($plugin, $package) = @_;

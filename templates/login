@@ -4,6 +4,7 @@
     <p>Username: <input name="username"></p>
     <p>Password: <input name="password" type="password"></p>
     <p><input type="submit" name="Login"></p>
+    <p><small><a href="/forgot_password">Forgot your password?</a></small></p>
 </form>
 
 <p>If you don't have an account, you can <a href="/signup">sign up</a>.</p>
