@@ -42,7 +42,7 @@
         </form>
     [% ELSE %]
         <p>[% self.arg.currency%][%p.cost%]/[%p.duration%]</p>
-        <p>[%p.description |htmlpara%]</p>
+        <p>[%p.description |html_para%]</p>
     [% END %]
     <form method="post" action="buyproduct">
 <input type="hidden" value="[%p.id%]" name="buyproduct">
