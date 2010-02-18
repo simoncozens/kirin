@@ -16,7 +16,7 @@
      [% END %]
     <td class="makecomment">#</td>
     <td class="removeline">-</td>
-    <td>+</td>
+    <td class="insertline">+</td>
     </tr>
 [% END %]
 </table>
@@ -99,6 +99,25 @@ function removeLine() {
         }).dialog("open");
 }
 
+function insertLine() {
+   var insertafter = this.parentNote; 
+   $(insertafter).after('
+    <tr>
+         <td><input class="localpart"></td>
+            <td><table style="border:1px solid black">
+            <tr><td><input class="autocomplete"></td>
+            <td class="rhsplus">+</td>
+            </tr>
+            </table></td>
+
+    <td class="makecomment">#</td>
+    <td class="removeline">-</td>
+    <td class="insertline">+</td>
+    </tr>
+');
+    fixActions();
+}
+
 $("#dialog").dialog({
     bgiframe: true,
     autoOpen: false,
@@ -128,7 +147,9 @@ function rollup() {
       $(".rhsplus").click(doPlus);
       $(".makecomment").click(makeComment);
       $(".removeline").click(removeLine);
+      $(".insert").click(insertLine);
       $(".localpart").blur(fixActions);
+
   }
   $(document).ready(function(){
       fixActions();
