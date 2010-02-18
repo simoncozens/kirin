@@ -106,12 +106,12 @@ sub _is_hosted_by {
 
 
 sub _add_todo { 
-    my ($self, $mm, $method, $param) = @_;
+    my ($self, $mm, $method, @param) = @_;
     Kirin::DB::Jobqueue->find_or_create({
             customer   => $mm->{customer},
             plugin     => $self->name,
             method     => $method,
-            parameters => $param
+            parameters => join ":", @param
     });
 }
 
