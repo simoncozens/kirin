@@ -29,7 +29,7 @@ sub _paths {
     # foo.$dn -> ~/$dn/foo/     ($sub = first part of hosting name)
     my $user_symlink = $user_ent->dir. "/$domainname/$sub";
     if (!-d $user_ent->dir. "/$domainname") { 
-	mkdir $user_ent->dir. "/$domainname";
+        mkdir $user_ent->dir. "/$domainname";
         chown $user_ent->uid, ($main::gid || -1), $user_ent->dir. "/$domainname";
     } 
 
