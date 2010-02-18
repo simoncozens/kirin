@@ -129,6 +129,6 @@ sub _call_service_handlers {
 
 package Kirin::DB::Subscription;
 use Time::Piece;
-sub expired { shift->expires > Time::Piece->new }
+sub expired { shift->expires < Time::Piece->new }
 
 1;
