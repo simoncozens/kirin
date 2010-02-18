@@ -20,7 +20,7 @@
 [% FOR p = packages %]
 <div class="package [%p.category%]">
 <h3> [%p.name %] </h3>
-[% SET this_subscription = self.customer.subscriptions("package", p.id).first;
+[% SET this_subscription = self.customer.subscriptions("package", p.id);
  IF this_subscription; %]
     <form method="post">
     [% IF this.expired %]
