@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use base 'Kirin::Plugin';
 sub name      { "mail_alias"            }
+sub exposed_to { 0 }
 sub user_name { "Mail Aliases"          } 
 sub default_action { "list" }
 Kirin::Plugin::MailAlias->relates_to("Kirin::Plugin::Domain");
