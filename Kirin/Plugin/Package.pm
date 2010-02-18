@@ -66,13 +66,13 @@ sub edit {
         }
     } elsif (my $id = $mm->param("addtopackage")) {
         my $package = Kirin::DB::Package->retrieve($id);
-        my $service = Kirin::DB::Service->find_or_create({
-            plugin    => $mm->param("plugin"),
-            parameter => $mm->param("parameter"),
-            name      => $mm->param("name"),
-        });
         if ($package) {
-            $package->add_to_services($service);
+            $package->add_to_services(
+            {
+                plugin    => $mm->param("plugin"),
+                parameter => $mm->param("parameter"),
+                name      => $mm->param("name"),
+            });
             $mm->message("Service added");
         }
     } elsif (my $id = $mm->param("dropfrompackage")) { 
