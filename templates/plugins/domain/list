@@ -20,6 +20,6 @@
 
 <form method="post"><input type="hidden" value="1" name="adding">
 Name: <input name="domainname">
-<input type="submit">
+<input type="submit" value="Add">
 </form>
 [% END %]
