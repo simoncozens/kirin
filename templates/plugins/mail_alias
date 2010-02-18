@@ -1,3 +1,4 @@
+<h2>Mail aliases for [%domain.domainname%]</h2>
 <table id="aliasfile">
 [% SET acount = 0; FOR a = alias; %]
     <tr>
@@ -20,13 +21,13 @@
 [% END %]
 </table>
 <form method="post" onsubmit="return rollup()">
-    <input type="submit">
+    <input type="submit" value="Save">
     <input type="hidden" name="thefile" id="thefile">
 </form>
 <div id="dialog" title="Really remove this line?">
     <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0
     7px 20px 0;"></span>There's no undo, so if you make a mistake you
-    won't get it back. If you're unsure, so "No" and just comment it out
+    won't get it back. If you're unsure, say "No" and just comment it out
     for now.</p>
 </div>
 <script>
