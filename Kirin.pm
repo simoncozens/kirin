@@ -229,9 +229,9 @@ sub no_more {
 
 
 sub cronjobhelper {
-    my ($plugin, $package) = @_;
+    my ($self, $plugin, $package) = @_;
     for my $job (Kirin::DB::Jobqueue->search(plugin => $plugin)) {
-        my $user = $job->customer->find_user();
+        my ($user) = $job->customer->find_user();
         die "Customer doesn't have a user account!" unless $user;
         my @args = split /:/, $job->parameters;
         my $method = $job->method;
