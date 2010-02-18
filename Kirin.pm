@@ -184,10 +184,13 @@ sub try_to_add_new_user {
            and $p = $self->param("password");
     my $user  = eval { Kirin::DB::User->create({ 
         username => $u,
+        password => Authen::Passphrase::MD5Crypt->new(
+            salt_random => 1,
+            passphrase => $p
+        )->as_crypt
     }) };
     $self->message("That username has already been taken"), return
         unless $user; # Already exists 
-    $user->set_password($p);
     Kirin::DB::Jobqueue->find_or_create({
         plugin => "user",
         method => "setup",
