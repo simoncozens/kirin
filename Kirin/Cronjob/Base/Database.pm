@@ -1,13 +1,5 @@
-#!/usr/bin/perl
-# Run me from cron as
-#  perl -I/path/to/kirin mysql-database
+package Kirin::Cronjob::Base::Database;
 
-use strict;
-use warnings;
-do 'kirin.pl';
-Kirin->cronjobhelper("database", "Execute");
-
-package Execute;
 {
     our $dbh;
     sub master_db_handle {
@@ -52,3 +44,5 @@ sub drop {
     $db->delete;
     return 1;
 }
+
+1;
