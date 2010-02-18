@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+# Run me from cron as
+#  perl -I/path/to/kirin mysql-database
+
+use strict;
+use warnings;
+do 'kirin.pl';
+Kirin->cronjobhelper("database", "Execute");
+
+package Execute;
+{
+    our $dbh;
+    my $ouch = sub {
+        Kirin::Utils->email_boss(
+            severity => "error",
+            context  => "trying to connect to master database",
+            message => "Master database parameter $_[0] not specified in config"
+        );
+    };
+
+    sub master_db_handle {
+        return $dbh if $dbh;
+        my ($dsn, $user, $password) =
+            map { Kirin->args->{$_} or ($ouch->($_), return) }
+            qw/ master_db_connect master_db_user master_db_password /;
+        $dbh = DBI->connect($dsn, $user, $password) ||
+            (Kirin::Utils->email_boss(
+                severity => "error",
+                context  => "trying to connect to master database",
+                message  => "Connection failed! " . $DBI::errstr
+            ), return);
+    }
+}
+
+sub went_wrong {
+    my ($self, $verb) = @_;
+    Kirin::Utils->email_boss(
+        severity => "error",
+        context  => "trying to $verb database " . $self->name,
+        customer => $self->customer,
+        message  => "$verb failed " . $DBI::errstr
+    );
+}
+
+sub create {
+    my ($self, $user, $db_id) = @_;
+    my $db = Kirin::DB::UserDatabase->retrieve($db_id) or return;
+    my $dbh = $self->master_db_handle or return;
+    $dbh->do('grant all privileges on ? to ? identified by ?',
+        undef, $db->name . ".*", $db->username . '@localhost', $db->password)
+        or ($self->went_wrong("grant rights"), return);
+    $dbh->func("createdb", $db->name, 'admin')
+        or ($self->went_wrong("createdb"), return);
+    return 1;
+}
+
+sub drop {
+    my ($self, $user, $db_id) = @_;
+    my $db = Kirin::DB::UserDatabase->retrieve($db_id) or return;
+    my $dbh = $self->master_db_handle or return;
+    $dbh->do('revoke all privileges on ? to ?',
+        undef, $db->name . ".*", $db->username . '@localhost')
+        or ($self->went_wrong("revoke rights"), return);
+    $dbh->do('revoke all privileges on ? to ?',
+        undef, $db->name . ".*", $db->username)
+        or ($self->went_wrong("revoke rights"), return);
+    $dbh->func("dropdb", $db->name, 'admin')
+        or (Kirin::Utils->went_wrong("dropdb"), return);
+    $db->delete;
+    return 1;
+}
