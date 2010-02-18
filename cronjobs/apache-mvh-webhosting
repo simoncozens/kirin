@@ -6,18 +6,20 @@ use strict;
 use warnings;
 do 'kirin.pl';
 
-our $gid = 750; # Change this if you don't have a common GID for directories
+#our $gid = 750; # Change this if you don't have a common GID for directories
 
 Kirin->cronjobhelper("webhosting", "Execute");
 
 package Execute;
 use User::pwent;
-use File::Path qw/remove_tree/;
+use File::Path qw/rmtree/;
 
 sub _paths {
     my ($hostname, $domainname, $user) = @_;
-    my $user_ent = pwent($user->username);
+    my $user_ent = getpwnam($user->username);
     my $sub;
+    die "No hostname" unless $hostname;
+    die "No domain name" unless $domainname;
     if ($hostname eq $domainname or $hostname eq "www.$domainname") {
         $sub = "website";
     } else { ($sub) = $hostname =~ /^(\w+)\./; }
@@ -26,20 +28,25 @@ sub _paths {
     # $dn     -> ~/$dn/website/ ($sub = "website")
     # foo.$dn -> ~/$dn/foo/     ($sub = first part of hosting name)
     my $user_symlink = $user_ent->dir. "/$domainname/$sub";
+    if (!-d $user_ent->dir. "/$domainname") { 
+	mkdir $user_ent->dir. "/$domainname";
+        chown $user_ent->uid, ($main::gid || -1), $user_ent->dir. "/$domainname";
+    } 
 
-    my $real_webhome = '/users/freehosting/' . substr($domainname, 0,1) . '/' . $hostname;
+    my $real_webhome = '/web/' . $hostname;
     return ( $real_webhome, $user_symlink);
 }
 
 sub create {
     my ($self, $user, $hostname, $domain) = @_;
     return unless $user;
+    die "No domain?" unless $domain;
     my ($real_webhome, $user_symlink) = _paths($hostname, $domain, $user);
 
     if ( ! -e $real_webhome) { 
         mkdir $real_webhome; 
         chmod 0705, $real_webhome;
-        chown pwent($user)->id, ($main::gid || -1), $real_webhome;
+        chown getpwnam($user->username)->uid, ($main::gid || -1), $real_webhome;
     }
 
     if ( -e $user_symlink and 
@@ -53,5 +60,5 @@ sub delete {
     my ($real_webhome, $user_symlink) = _paths($hostname, $domain, $user);
 
     unlink($user_symlink);
-    remove_tree($real_webhome); # Archive it? Bah, we've got backups...
+    rmtree($real_webhome); # Archive it? Bah, we've got backups...
 }

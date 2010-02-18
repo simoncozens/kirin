@@ -25,8 +25,8 @@ sub add_hosting {
     if (!-d  $user_ent->dir) { die "User ".$user->username." doesn't have a home directory" }
 
     # Create hostings for www.$domain and $domain
-    Kirin::Plugin::Webhosting->_add_todo({customer => $user->customer}, create => $dn);
-    Kirin::Plugin::Webhosting->_add_todo({customer => $user->customer}, create => "www.$dn");
+    Kirin::Plugin::Webhosting->_add_todo({customer => $user->customer}, create => $dn, $dn);
+    Kirin::Plugin::Webhosting->_add_todo({customer => $user->customer}, create => "www.$dn", $dn);
 
     # Email hosting
     open EMAIL, ">/etc/exim4/virtual/$dn" or die $!;
