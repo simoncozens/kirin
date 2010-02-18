@@ -1,4 +1,6 @@
 package Kirin::Plugin::MailAlias;
+use strict;
+use warnings;
 use base 'Kirin::Plugin';
 sub name      { "mail_alias"            }
 sub user_name { "Mail Aliases"          } 
@@ -14,15 +16,15 @@ sub list {
     my $alias_file = "/etc/exim4/virtual/".$domain->domainname;
     if ($mm->param("thefile")){ # We have an upload
         open my $alias, ">", $alias_file or 
-            return Kirin->its_all_gone_wrong("Couldn't write on alias file\n");
+            return $mm->its_all_gone_wrong("Couldn't write on alias file\n");
         print $alias $mm->param("thefile");
         close $alias;
-        push @{$req->{messages}}, "Alias file saved successfully";
+        $mm->message("Alias file saved successfully");
     }
     if (!-r $alias_file) {
-        return Kirin->its_all_gone_wrong("Couldn't find alias file\n");
+        $mm->its_all_gone_wrong("Couldn't find alias file\n");
     }
-    Kirin->respond($req, $action, "plugins/mail_alias", 
+    $mm->respond("plugins/mail_alias", 
             alias => [ read_alias($alias_file) ],
             domain => $domain,
     );
@@ -33,6 +35,7 @@ sub read_alias { # Lifted from Mail::Alias but altered to be order-preserving
      open my $fh, $file or die "Can't happen: $!"; # Because we used -r
      my $line;
      my @res;
+     my $group;
      while (<$fh>) {
         chomp;
         if (/^#/ || /^\s*$/) { push @res, ["comment", $_]; next }
