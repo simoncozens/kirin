@@ -32,7 +32,7 @@ charge will appear on the next invoice. </p>
 <table>
 <tr> <th> Description </th> <td><input name="description"></td>
 <tr> <th> Cost </th>        <td><input name="cost"></td>
-<tr> <td> &nbsp; </td> <td> <input type="submit"> </td>
+<tr> <td> &nbsp; </td> <td> <input type="submit" value="Add Charge"> </td>
 </table>
 </form>
 [% END %]

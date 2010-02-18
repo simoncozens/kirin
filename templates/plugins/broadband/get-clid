@@ -11,7 +11,7 @@ telephone number here:
 If you have a MAC code from an existing supplier, please enter it here:
 </p>
 <input name="mac" value="">
-<input type="submit">
+<input type="submit" value="Check availability">
 </form>
 
 <p> Please note that we will be supplying broadband to the address

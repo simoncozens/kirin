@@ -3,7 +3,7 @@
 <form method="post" id="loginform">
     <p>Username: <input name="username"></p>
     <p>Password: <input name="password" type="password"></p>
-    <p><input type="submit" name="Login"></p>
+    <p><input type="submit" value="Login"></p>
     <p><small><a href="/forgot_password">Forgot your password?</a></small></p>
 </form>
 

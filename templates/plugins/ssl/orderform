@@ -43,5 +43,5 @@
 <h3>Technical Contact</h3>
 [% ContactForm("Tech") %]
 
-<input type="submit" name="Order">
+<input type="submit" value="Order">
 </form>

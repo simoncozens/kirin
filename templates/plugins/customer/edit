@@ -14,5 +14,5 @@ SET f = to_field(thing); %]
 </tr>
 [% END %]
 </table>
-<input type="submit" id="submit">
+<input type="submit" id="submit" value="Edit customer">
 </form>

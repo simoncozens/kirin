@@ -7,7 +7,7 @@
     <p>Database name: [% username _ "_" | html %]<input name="dbname"></p>
     <p>Password: <input name="pass1" type="password"></p>
     <p>Confirm password: <input name="pass2" type="password"></p>
-    <input type="submit">
+    <input type="submit" value="Create">
 </form>
 [% END %]
 
