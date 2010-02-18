@@ -7,7 +7,6 @@
 [% MACRO to_field(x) x.replace(" ", "_") | lower %]
 
 <form method="post">
-<input type="submit" id="submit" value="Create Customer">
 <input type="hidden" name="editing" value="1"/>
 <table>
 [% FOR thing = ["Forename", "Surname", "Org", "Address", "Town",
@@ -20,4 +19,5 @@ SET f = to_field(thing); %]
 </tr>
 [% END %]
 </table>
+<input type="submit" id="submit" value="Create Customer">
 </form>
