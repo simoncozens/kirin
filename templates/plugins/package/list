@@ -23,7 +23,7 @@
 [% SET this_subscription = self.customer.subscriptions("package", p.id);
  IF this_subscription; %]
     <form method="post">
-    [% IF this.expired %]
+    [% IF this_subscription.expired %]
     <p>(This subscription has <b>expired</b>)</p>
     <input type="hidden" value="[%this_subscription.id%]" name="renewsubscription">
     <input type="submit" value="Renew">
