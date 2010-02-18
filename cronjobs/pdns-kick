@@ -16,7 +16,7 @@ my $loader = Class::DBI::Loader->new(
     namespace => "DNSDB");
 
 my %done;
-for my $job (Kirin::DB::JobQueue->search(plugin => "dns")) {
+for my $job (Kirin::DB::Jobqueue->search(plugin => "dns")) {
     if ($job->method eq "update_server") {
         # Only do the job once per domain
         my ($user) = $job->customer->find_user;

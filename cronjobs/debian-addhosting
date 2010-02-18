@@ -5,7 +5,7 @@ use strict;
 use warnings;
 do 'kirin.pl';
 
-for my $job (Kirin::DB::JobQueue->search(plugin => "domain")) {
+for my $job (Kirin::DB::Jobqueue->search(plugin => "domain")) {
     if ($job->method eq "add_hosting") {
         my ($user) = $job->customer->find_user;
         add_hosting($job->parameters, $user);
