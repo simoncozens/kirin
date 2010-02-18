@@ -23,10 +23,11 @@ requires    "Net::SSLeay" => 0;
 requires    "File::Slurp" => 0;
 requires    "Net::DNS" => 0;
 requires    "Email::Valid" => 0;
+requires    "UNIVERSAL::require" => 0;
+requires  "Data::Password::BasicCheck" => 0;
 recommends  "Business::PayPal" => 0;
 recommends  "Regexp::Common::dns" => 0;
 recommends  "Net::eNom" => 0.3;
-recommends  "Data::Password::BasicCheck" => 0;
 recommends  "Net::KashFlow" => 0;
 
 auto_install;
