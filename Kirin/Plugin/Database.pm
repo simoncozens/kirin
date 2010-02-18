@@ -33,8 +33,10 @@ sub list {
                     name     => $dbname,
                     username => $username,
                     password => $dbp1
-                }) and $db->create_on_backend()) {
-            $mm->message("Database created!");
+                })
+            ) {
+            $self->_add_todo($mm, create => $db->id);
+            $mm->message("The database will be created shortly");
         } else {
             $mm->message("Something went wrong creating the database; the administrator has been informed and will create the database manually.");
             Kirin::Utils->email_boss(
@@ -65,19 +67,8 @@ sub delete {
     if (!$mm->param("confirmdrop")) {
         return $mm->respond("plugins/database/confirmdrop", database => $db);
     }
-    if (!$db->drop_on_backend) {
-
-        # Pretend to the user it was, they don't need to know, and get
-        # the admin to drop it manually.
-        Kirin::Utils->email_boss(
-            severity => "error",
-            context  => "trying to drop database " . $db->name,
-            customer => $mm->{customer},
-            message  => "Database couldn't be dropped; please drop it manually."
-        );
-    }
-    $mm->message("Database dropped.");
-    $db->delete;
+    $self->_add_todo($mm, drop => $db->id);
+    $mm->message("The database will be dropped shortly");
     $self->list($mm);
 }
 
@@ -91,67 +82,6 @@ sub _setup_db {
     shift->_ensure_table("user_database");
     Kirin::DB::UserDatabase->has_a(customer => "Kirin::DB::Customer");
     Kirin::DB::Customer->has_many(databases => "Kirin::DB::UserDatabase");
-}
-
-package Kirin::DB::UserDatabase;
-
-{
-    our $dbh;
-    my $ouch = sub {
-        Kirin::Utils->email_boss(
-            severity => "error",
-            context  => "trying to connect to master database",
-            message => "Master database parameter $_[0] not specified in config"
-        );
-    };
-
-    sub master_db_handle {
-        return $dbh if $dbh;
-        my ($dsn, $user, $password) =
-            map { Kirin->args->{$_} or ($ouch->($_), return) }
-            qw/ master_db_connect master_db_user master_db_password /;
-        $dbh = DBI->connect($dsn, $user, $password) ||
-            (Kirin::Utils->email_boss(
-                severity => "error",
-                context  => "trying to connect to master database",
-                message  => "Connection failed! " . $DBI::errstr
-            ), return);
-    }
-}
-
-sub went_wrong {
-    my ($self, $verb) = @_;
-    Kirin::Utils->email_boss(
-        severity => "error",
-        context  => "trying to $verb database " . $self->name,
-        customer => $self->customer,
-        message  => "$verb failed " . $DBI::errstr
-    );
-}
-
-sub create_on_backend {
-    my $self = shift;
-    my $dbh = $self->master_db_handle or return;
-    $dbh->do('grant all privileges on ? to ? identified by ?',
-        undef, $self->name . ".*", $self->username . '@localhost', $self->password)
-        or (Kirin::Utils->went_wrong("grant rights"), return);
-    $dbh->func("createdb", $self->name, 'admin')
-        or (Kirin::Utils->went_wrong("createdb"), return);
-    return 1;
-}
-
-sub drop_on_backend {
-    my $self = shift;
-    my $dbh = $self->master_db_handle or return;
-    $dbh->do('revoke all privileges on ? to ?',
-        undef, $self->name . ".*", $self->username . '@localhost')
-        or (Kirin::Utils->went_wrong("revoke rights"), return);
-    $dbh->do('revoke all privileges on ? to ?',
-        undef, $self->name . ".*", $self->username)
-        or (Kirin::Utils->went_wrong("revoke rights"), return);
-    $dbh->func("dropdb", $self->name, 'admin')
-        or (Kirin::Utils->went_wrong("dropdb"), return);
-    return 1;
 }
 
 package Kirin::DB::Database;
