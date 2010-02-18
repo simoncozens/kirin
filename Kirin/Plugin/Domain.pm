@@ -48,8 +48,8 @@ sub _validate {
         return $dn;
     }
 
-    $mm->message("I don't think we host anything for that domain. Email the administrator if you think this is in error.");
-    return;
+    $mm->message("I don't think we host anything for that domain. Email the administrator if you think this is in error. Going ahead anyway");
+    return $dn;
 }
 
 sub _setup_db {
