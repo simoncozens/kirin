@@ -1,13 +1,13 @@
 [% IF adding %]
 <h2> Add a new customer to your profile </h2>
 [% ELSE %]
-<h2>You first need to create your customer profile</h2>
+<h2>Please create your customer profile</h2>
 [% END %]
 
 [% MACRO to_field(x) x.replace(" ", "_") | lower %]
 
 <form method="post">
-<input type="submit" id="submit">
+<input type="submit" id="submit" value="Create Customer">
 <input type="hidden" name="editing" value="1"/>
 <table>
 [% FOR thing = ["Forename", "Surname", "Org", "Address", "Town",
