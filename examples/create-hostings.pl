@@ -18,7 +18,7 @@ my @standard = (
     ["MySQL Database", "database", "1"],
     ["Apache .htaccess control", "", ""],
     ["Full Apache access and error logs", "", ""],
-    ["Unlimited Email Addresses and POP3 Mailboxes", "email", "0"],
+    ["Unlimited Email Addresses and POP3 Mailboxes", "pop", "-1"],
     ["Comprehensive SPAM and Virus Email Filters", "", ""],
     ["All websites and databases backed up offsite daily", "rsync", "250"],
 );
