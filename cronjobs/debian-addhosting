@@ -4,6 +4,7 @@
 use strict;
 use warnings;
 do 'kirin.pl';
+use User::pwent;
 
 for my $job (Kirin::DB::Jobqueue->search(plugin => "domain")) {
     if ($job->method eq "add_hosting") {
@@ -17,7 +18,7 @@ sub add_hosting {
     my $domain = Kirin::DB::Domain->retrieve(shift); return unless $domain;
     my $user   = shift;                              return unless $user;
     my $dn     = $domain->domainname;
-    my $user_ent = pwent($user->username);
+    my $user_ent = getpwnam($user->username);
 
     # Ensure home dir
     if (!$user_ent) { die "User ".$user->username." isn't set up yet" }
@@ -29,6 +30,8 @@ sub add_hosting {
 
     # Email hosting
     open EMAIL, ">/etc/exim4/virtual/$dn" or die $!;
-    print EMAIL "*: ".$user->customer->email."\n";
+    my $mail = $user->customer->email || $user->customer->billing_email;
+    die $user->username." doesn't have an email address" unless $mail;
+    print EMAIL "*: ".$mail."\n";
     close EMAIL;
 }
