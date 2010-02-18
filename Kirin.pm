@@ -97,9 +97,6 @@ sub authenticate {
         return $self->forgot_password;
     }
     my $redirect = $self->ensure_user($sess); 
-    return if UNIVERSAL::isa($class, "Kirin::Plugin") 
-                and { map {$_=>1} $class->_skip_auth()}->{$verb};
-    return $redirect if $redirect;
 
     if (my $cid = $self->param("cid")) {
         my $customer = Kirin::DB::Customer->retrieve($cid);
@@ -111,7 +108,10 @@ sub authenticate {
     elsif (my $cust = $sess->get("customer")) { 
         $self->{customer} = Kirin::DB::Customer->retrieve($cust);
     }
+    return $redirect if $redirect;
     $self->{customer} ||= $self->{user}->customer;
+    return if UNIVERSAL::isa($class, "Kirin::Plugin") 
+                and { map {$_=>1} $class->_skip_auth()}->{$verb};
     if (!$self->{customer} and !try_to_add_customer($self, $sess)) {
         $self->restore_context($sess);
         $self->save_context($sess);
