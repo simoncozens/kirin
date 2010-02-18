@@ -2,6 +2,7 @@ package Kirin::Plugin::MailAlias;
 use base 'Kirin::Plugin';
 sub name      { "mail_alias"            }
 sub user_name { "Mail Aliases"          } 
+sub default_action { "list" }
 Kirin::Plugin::MailAlias->relates_to("Kirin::Plugin::Domain");
 
 sub list {
@@ -11,10 +12,10 @@ sub list {
     return $r if $r;
 
     my $alias_file = "/etc/exim4/virtual/".$domain->domainname;
-    if ($req->parameters()->{"thefile"}){ # We have an upload
+    if ($mm->param("thefile")){ # We have an upload
         open my $alias, ">", $alias_file or 
             return Kirin->its_all_gone_wrong("Couldn't write on alias file\n");
-        print $alias $req->parameters()->{"thefile"};
+        print $alias $mm->param("thefile");
         close $alias;
         push @{$req->{messages}}, "Alias file saved successfully";
     }
