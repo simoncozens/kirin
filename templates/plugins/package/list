@@ -1,5 +1,5 @@
 [% MACRO edit_package_basics(label,p) BLOCK; %]
-<p><input name="cost" value="[%p.cost|html%]"> / 
+<p>[% self.arg.currency%] <input name="cost" value="[%p.cost|html%]"> / 
     <select name="duration">
         <option value="month" [% IF p.duration == "month"%]selected[%END%]>Month</option>
         <option value="year" [% IF p.duration == "year"%]selected[%END%]>Year</option>
@@ -8,9 +8,7 @@
 </p>
 <p>Category: <input name="category" value="[%p.category|html%]"></p>
 <p>Description:</p>
-<textarea name="description" style="width:80%; min-height:120px">
-    [%p.description | html %]
-</textarea>
+<textarea name="description" style="width:80%; min-height:120px">[%p.description | html %]</textarea>
 [% END %]
 
 <h2> Packages available </h2>
@@ -43,7 +41,7 @@
         [% edit_package_basics("Edit Package",p) %]
         </form>
     [% ELSE %]
-        <p>[%p.cost%]/[%p.duration%]</p>
+        <p>[% self.arg.currency%][%p.cost%]/[%p.duration%]</p>
         <p>[%p.description |htmlpara%]</p>
     [% END %]
     <form method="post" action="buyproduct">
