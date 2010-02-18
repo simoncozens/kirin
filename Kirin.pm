@@ -19,8 +19,10 @@ sub app {
     Kirin->args(\%args);
     my %plug_options;
     if ($args{plugins}) { 
+        for (@{$args{plugins}}) { if (!/::/) { $_ = "Kirin::Plugin::$_" } }
         $plug_options{only} = $args{plugins};
     } elsif ($args{not_plugins}) {
+        for (@{$args{not_plugins}}) { if (!/::/) { $_ = "Kirin::Plugin::$_" } }
         $plug_options{except} = $args{not_plugins};
     }
     Module::Pluggable->import(%plug_options);
