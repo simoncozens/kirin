@@ -4,15 +4,11 @@
 We can provide you with secondary NS and MX records for this domain to
 provide a backup in the case of the failure of your primary.
 </p>
-[% IF have_already %]
-<p>This service is currently <i>on</i>.
-<a href="?editing=1&on=0">Click here</a> to turn the service off.</p>
-[% ELSE %]
-<p>This service is currently <i>off</i>.</p>
 <form method="post">
 <input type="hidden" value="1" name="editing">
-<input type="hidden" value="1" name="on">
-IP address of primary nameserver: <input name="primary_server">
-<input type="submit" value="Turn on">
+<p>Secondary MX: <input type="checkbox" name="mx" value="1" [%"checked" IF have.mx%]></p>
+<p>Secondary DNS: <input type="checkbox" name="ns" value="1" [%"checked" IF have.sdns%]>
+IP address of primary: <input name="primary_server" value="[%have.primary_server%]">
+</p>
+<input type="submit" value="Set up">
 </form>
-[% END %]
