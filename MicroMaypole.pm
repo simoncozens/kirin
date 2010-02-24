@@ -10,7 +10,7 @@ sub app {
     my ($self, %args) = @_;
     if (!$args{model_prefix}) { die "You didn't pass a model prefix!" }
     my $t = Template->new({
-        INCLUDE_PATH => $args{templates} || "templates",
+        INCLUDE_PATH => $args{template_path} || "templates",
         PRE_PROCESS  => "header",
         POST_PROCESS => "footer",
         COMPILE_DIR => $args{compiled_templates},
