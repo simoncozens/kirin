@@ -68,6 +68,17 @@ CREATE TABLE IF NOT EXISTS secondary_dns (
     sdns integer,
     primary_server varchar(255)
 );
+
+CREATE TABLE IF NOT EXISTS mxbackup ( 
+    id integer primary key not null,
+    username varchar(80) NOT NULL default '',
+    domain varchar(80) NOT NULL default '',
+    mail varchar(1) default 'Y',
+    dns varchar(1) default 'Y',
+    start_date date default NULL,
+    renew_date date default NULL,
+    primary_ns varchar(160) default NULL
+);
 / }
 
 1;
