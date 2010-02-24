@@ -26,10 +26,19 @@ sub _paths {
 }
 
 sub create {
-    my ($self, $job, $user, $hostname, $domain) = @_;
+    my ($self, $job, $user, $hosting_id) = @_;
     return unless $user;
+    my $hosting = Kirin::DB::Webhosting->retrieve($hosting_id) or return;
+    my $hostname = $hosting->hostname;
+    my $domain = $hosting->domain->domainname;
     die "No domain?" unless $domain;
     my ($real_webhome, $user_symlink) = _paths($hostname, $domain, $user);
+    if (my ($sym_f) = $hosting->features("symlink")) { 
+        my $path = $sym_f->path;
+        if ($path =~ /^(\w+|\/)+$/) { # Only process non-naughty links
+            $user_symlink = getpwnam($user->username)->dir."/".$path;
+        } 
+    }
 
     if ( ! -e $real_webhome) { 
         mkdir $real_webhome; 

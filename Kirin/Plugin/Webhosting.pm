@@ -36,7 +36,7 @@ sub list {
         if ($hostname =~ /^$RE{dns}{data}{cname}$/) {
             $hosting = Kirin::DB::Webhosting->create({
                 domain => $domain, hostname => $hostname });
-            $self->_add_todo($mm, create => $hosting->hostname, $domain->domainname);
+            $self->_add_todo($mm, create => $hosting->id);
             $mm->message("Your site has been configured and will be available shortly");
         } else {
             $mm->message("Hostname contains illegal characters");

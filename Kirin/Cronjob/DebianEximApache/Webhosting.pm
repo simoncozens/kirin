@@ -1,4 +1,6 @@
 package Kirin::Cronjob::DebianEximApache::Webhosting;
+use strict;
+use warnings;
 use User::pwent;
 use File::Path qw/rmtree/;
 
@@ -26,7 +28,10 @@ sub _paths {
 }
 
 sub create {
-    my ($self, $job, $user, $hostname, $domain) = @_;
+    my ($self, $job, $user, $hosting_id) = @_;
+    my $hosting = Kirin::DB::Webhosting->retrieve($hosting_id) or return;
+    my $hostname = $hosting->hostname;
+    my $domain = $hosting->domain->domainname;
     return unless $user;
     die "No domain?" unless $domain;
     my ($real_webhome, $user_symlink) = _paths($hostname, $domain, $user);
@@ -44,13 +49,15 @@ sub create {
     -f "/etc/apache2/sites-available/template"
         or die "Couldn't open Apache template"; 
 
-    open my $out, ">/etc/apache2/sites-available/$hostname"
+    open my $out, ">/etc/apache2/sites-available/$hostname" 
+        or die "Couldn't write on /etc/apache2/sites-available/$hostname: $!";
     my $tt = Template->new();
     $tt->process("/etc/apache2/sites-available/template",
         { hostname => $hostname,
           user => $user,
           webhome => $real_webhome
         }, $out) || die $tt->error();
+    # Restart Apache? Anything else?
 }
 
 sub delete {
@@ -61,3 +68,7 @@ sub delete {
     unlink($user_symlink);
     rmtree($real_webhome); # Archive it? Bah, we've got backups...
 }
+
+sub add_feature {}
+sub remove_feature {}
+1;
