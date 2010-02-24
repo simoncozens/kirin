@@ -1,31 +1,32 @@
 package Kirin::Cronjob::PDNS::SecondaryDns;
-my ($dsn, $user, $password) = @ARGV
-    or die "You need to supply DSN, username and password";
-    # It's cron, so errors will be emailed back to root - no need to send
-
-my $dbh = DBI->connect($dsn, $user, $password)
-    || die "Cannot connect to database Error: $!";
+if (!Kirin->args->{pdns_login}) {
+    die "You need to supply a pdns_connect array in your Kirin configuration";
+}
+our $dbh;
+{ 
+    my ($dsn, $user, $password) = @{Kirin->args->{pdns_login}};
+    $dbh = DBI->connect($dsn, $user, $password)
+        || die "Cannot connect to database Error: $!";
+}
 
 sub setup { 
-    my ($user, $job, $domain, $rid) = @_;
+    my ($self, $job, $user, $domain, $rid) = @_;
     my $rec = Kirin::DB::SecondaryDns->retrieve($rid);
     if (!$rec) { return }
     $domain = Kirin::DB::Domain->retrieve($domain);
     if (!$domain) { return } # Domain has disappeared, no longer hosting
 
+    $dbh->do("delete from domains where name = ? and account = ?",
+        undef, $domain->domainname, $user->username);
     if ($rec->sdns) { 
-        # If we already have one, modify it
         $dbh->do("insert into domains (name, master, type, account) 
                 values (?,?,?,?)", undef, 
             $domain->domainname, $primary, "SLAVE", $user->username)
         or die "Could not insert domain ".$dbh->errstr;
-    } else {
-        $dbh->do("delete from domains where name = ? and account = ?",
-            undef, $domain->domainname, $user->username);
-    }
+    } 
+
+    # Delete existing
     if ($rec->mx) {
-        # If we have one, modify
-    } else { 
-        # Delete if necessary
-    }
+        # Add new
+    } 
 }
