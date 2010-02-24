@@ -76,7 +76,7 @@ sub ensure_user {
             #$self->save_context($sess);
         }
     } elsif ($self->{req}->path eq "/signup") { # But we have signed up!
-        #$self->restore_context($sess);
+        $self->{req}->path("/package/list"); 
     }
     $self->{user} = Kirin::DB::User->retrieve($sess->get("user")) 
         or return $self->respond("403handler"); # Done gone screwed up
