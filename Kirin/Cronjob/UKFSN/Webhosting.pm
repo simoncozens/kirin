@@ -1,16 +1,4 @@
-#!/usr/bin/perl
-# Run me from cron as
-#  perl -I/path/to/kirin apache-mvh-webhosting
-# as root
-use strict;
-use warnings;
-do 'kirin.pl';
-
-#our $gid = 750; # Change this if you don't have a common GID for directories
-
-Kirin->cronjobhelper("webhosting", "Execute");
-
-package Execute;
+package Kirin::Cronjob::UKFSN::Webhosting;
 use User::pwent;
 use File::Path qw/rmtree/;
 
@@ -38,7 +26,7 @@ sub _paths {
 }
 
 sub create {
-    my ($self, $user, $hostname, $domain) = @_;
+    my ($self, $job, $user, $hostname, $domain) = @_;
     return unless $user;
     die "No domain?" unless $domain;
     my ($real_webhome, $user_symlink) = _paths($hostname, $domain, $user);
@@ -55,10 +43,15 @@ sub create {
 }
 
 sub delete {
-    my ($self, $user, $hostname, $domain) = @_;
+    my ($self, $job, $user, $hostname, $domain) = @_;
     return unless $user;
     my ($real_webhome, $user_symlink) = _paths($hostname, $domain, $user);
 
     unlink($user_symlink);
     rmtree($real_webhome); # Archive it? Bah, we've got backups...
 }
+
+sub add_feature    { return 1 } # We don't support features quite yet.
+sub remove_feature { return 1 } # But we need to keep the checker happy.
+
+1;

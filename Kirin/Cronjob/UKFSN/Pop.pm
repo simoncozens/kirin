@@ -1,25 +1,19 @@
-#!/usr/bin/perl
-# Run me from cron as
-#  perl -I/path/to/kirin ukfsn-pop "DBI:mysql:database=email;host=localhost" email $password
-
+package Kirin::Cronjob::UKFSN::Pop;
 use strict;
 use warnings;
 use User::pwent;
 
-my ($dsn, $user, $password) = @ARGV
-    or die "You need to supply DSN, username and password";
-    # It's cron, so errors will be emailed back to root - no need to send
+if (!Kirin->args->{email_db_login}) {
+    die "You need to supply a email_db_login array in your Kirin configuration";
+}   
+our $dbh;
+{
+    $dbh = DBI->connect(@{Kirin->args->{email_db_login}})
+        or die "Couldn't connect " . DBI->errstr;
+}       
 
-do 'kirin.pl';
-
-my $dbh = DBI->connect($dsn, $user, $password)
-    || die "Cannot connect to database Error: $!";
-
-Kirin->cronjobhelper("pop", "Execute"); 
-
-package Execute;
 sub create {
-    my ($self, $user, $domain, $localpart, $pass) = @_;
+    my ($self, $job, $user, $domain, $localpart, $pass) = @_;
 
     my $username = $user->username;
     my $address = "$localpart\@$domain";
@@ -40,8 +34,8 @@ sub create {
         or die "Couldn't insert into popbox ".$dbh->errstr;
 }
 
-sub edit {
-    my ($self, $user, $domain, $localpart, $pass) = @_;
+sub update {
+    my ($self, $job, $user, $domain, $localpart, $pass) = @_;
 
     $dbh->do("UPDATE popbox SET password = ? 
                 WHERE local = ? AND domain = ? AND owner = ?", undef,
@@ -50,7 +44,7 @@ sub edit {
 }
 
 sub delete {
-    my ($self, $user, $domain, $localpart, $pass) = @_;
+    my ($self, $job, $user, $domain, $localpart, $pass) = @_;
 
     my $del = "delete from popbox where local=? AND domain=? AND user=?";
     $dbh->do($del, undef, $localpart, $domain, $user->username)
@@ -60,3 +54,4 @@ sub delete {
         or die "Could not delete from virtual";
 }
 
+1;

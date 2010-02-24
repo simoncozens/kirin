@@ -229,6 +229,13 @@ sub no_more {
     $self->message("You can't add any more $what; do you need to purchase more services?");
 }
 
+sub cronjobpackagefor {
+    my ($self, $style, $plugin) = @_;
+    return $style->{$plugin} if ref $style;
+
+    $plugin =~ s/_(\w)/\U$1/g;
+    "Kirin::Cronjob::${style}::\u${plugin}";
+}
 
 sub cronjobhelper {
     my ($self, $style) = @_;
@@ -237,8 +244,7 @@ sub cronjobhelper {
     for my $job (Kirin::DB::Jobqueue->retrieve_all) {
         my $method = $job->method;
         my $plugin = $job->plugin;
-        my $package = ref $style ? $style->{$plugin} : 
-            "Kirin::Cronjob::${style}::\u${plugin}";
+        my $package = $self->cronjobpackagefor($style, $plugin);
         $package->require;
         if (!$package->can($method)) {
             die "Couldn't require package $package: $@" if $@;
@@ -253,8 +259,7 @@ sub cronjobhelper {
         my @args = split /:/, $job->parameters;
         my $method = $job->method;
         my $plugin = $job->plugin;
-        my $package = ref $style ? $style->{$plugin} : 
-            "Kirin::Cronjob::${style}::\u${plugin}";
+        my $package = $self->cronjobpackagefor($style, $plugin);
         $package->$method($job, $user, @args) and $job->delete;
     }
 }   
