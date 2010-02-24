@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+package Kirin::Cronjob::PDNS::Dns;
 use strict;
 use warnings;
 if (!Kirin->args->{pdns_login}) {
