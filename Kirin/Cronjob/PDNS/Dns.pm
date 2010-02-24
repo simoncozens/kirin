@@ -1,11 +1,11 @@
 package Kirin::Cronjob::PDNS::Dns;
 use strict;
 use warnings;
-if (!Kirin->args->{pdns_connect}) {
-    die "You need to supply a pdns_connect array in your Kirin configuration";
+if (!Kirin->args->{pdns_db}) {
+    die "You need to supply a pdns_db array in your Kirin configuration";
 }
 { 
-    my ($dsn, $user, $password) = @{Kirin->args->{pdns_connect}};
+    my ($dsn, $user, $password) = @{Kirin->args->{pdns_db}};
     my $loader = Class::DBI::Loader->new(
         dsn => $dsn, user => $user, password => $password,
         options => {RaiseError => 1, AutoCommit => 0},

@@ -3,15 +3,7 @@ use strict;
 use warnings;
 use User::pwent;
 
-if (!Kirin->args->{email_db_login}) {
-    die "You need to supply a email_db_login array in your Kirin configuration";
-}
-our $email_dbh;
-{
-    $email_dbh = DBI->connect(@{Kirin->args->{email_db_login}})
-        or die "Couldn't connect " . DBI->errstr;
-}
-
+my $email_dbh = Kirin::Utils->get_dbh("email_db");
 sub add_hosting {
     my ($self, $job, $user, $d_id) = @_;
     my $domain = Kirin::DB::Domain->retrieve($d_id); return unless $domain;

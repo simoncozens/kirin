@@ -3,14 +3,7 @@ use strict;
 use warnings;
 use User::pwent;
 
-if (!Kirin->args->{email_db_login}) {
-    die "You need to supply a email_db_login array in your Kirin configuration";
-}
-our $email_dbh;
-{
-    $email_dbh = DBI->connect(@{Kirin->args->{email_db_login}})
-        or die "Couldn't connect " . DBI->errstr;
-}
+our $email_dbh = Kirin::Utils->get_dbh("email_db");
 
 sub update {
     my ($self, $job, $user, $d_id) = @_;

@@ -1,16 +1,5 @@
 package Kirin::Cronjob::Base::Database;
-
-{
-    our $dbh;
-    sub master_db_handle {
-        return $dbh if $dbh;
-        my ($dsn, $user, $password) =
-            map { Kirin->args->{$_} or die "$_ not configured" }
-            qw/ master_db_connect master_db_user master_db_password /;
-        $dbh = DBI->connect($dsn, $user, $password) ||
-            die "Connection to master database failed: $DBI::errstr"
-    }
-}
+my $dbh = Kirin::Utils->get_dbh("master_db");
 
 sub create {
     my ($self, $job, $user, $db_id) = @_;

@@ -66,5 +66,15 @@ sub gen_pass {
     } while $checker->check($pw, @data) =~ /^([1346]|127)$/;
     return $pw;
 }
+
+sub get_dbh {
+    my ($self, $key) = @_;
+    if (!Kirin->args->{$key}) {
+        die "You need to supply a $key array in your Kirin configuration";
+    }   
+    my ($dsn, $user, $password) = @{Kirin->args->{$key}};
+    DBI->connect($dsn, $user, $password)
+        || die "Cannot connect to database Error: ".DBI->errstr;
+}
 1;
 

@@ -2,15 +2,7 @@ package Kirin::Cronjob::UKFSN::Pop;
 use strict;
 use warnings;
 use User::pwent;
-
-if (!Kirin->args->{email_db_login}) {
-    die "You need to supply a email_db_login array in your Kirin configuration";
-}   
-our $dbh;
-{
-    $dbh = DBI->connect(@{Kirin->args->{email_db_login}})
-        or die "Couldn't connect " . DBI->errstr;
-}       
+my $dbh = Kirin::Utils->get_dbh("email_db");
 
 sub create {
     my ($self, $job, $user, $domain, $localpart, $pass) = @_;

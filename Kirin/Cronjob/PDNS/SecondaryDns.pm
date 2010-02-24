@@ -1,13 +1,5 @@
 package Kirin::Cronjob::PDNS::SecondaryDns;
-if (!Kirin->args->{pdns_connect}) {
-    die "You need to supply a pdns_connect array in your Kirin configuration";
-}
-our $dbh;
-{ 
-    my ($dsn, $user, $password) = @{Kirin->args->{pdns_connect}};
-    $dbh = DBI->connect($dsn, $user, $password)
-        || die "Cannot connect to database Error: $!";
-}
+my $dbh = Kirin::Utils->get_dbh("pdns_db");
 
 sub setup { 
     my ($self, $job, $user, $domain, $rid) = @_;
