@@ -229,14 +229,31 @@ sub no_more {
 
 
 sub cronjobhelper {
-    my ($self, $plugin, $package) = @_;
-    for my $job (Kirin::DB::Jobqueue->search(plugin => $plugin)) {
+    my ($self, $style) = @_;
+    # Check we can fulfil it
+    my @jobs;
+    for my $job (Kirin::DB::Jobqueue->retrieve_all) {
+        my $method = $job->method;
+        my $plugin = $job->plugin;
+        my $package = ref $style ? $style->{$plugin} : 
+            "Kirin::Cronjob::${style}::\u${plugin}";
+        $package->require;
+        if (!$package->can($method)) {
+            die "Couldn't require package $package: $@" if $@;
+            die "$package can't fulfil method $method!";
+        }
+    }
+    # Now run the jobs
+    for my $job (Kirin::DB::Jobqueue->retrieve_all) {
+        next unless $job->customer->status eq "ok";
         my ($user) = $job->customer->find_user();
         die "Customer doesn't have a user account!" unless $user;
         my @args = split /:/, $job->parameters;
         my $method = $job->method;
-        if ($package->can($method)) { $package->$method($user, @args) }
-        $job->delete;
+        my $plugin = $job->plugin;
+        my $package = ref $style ? $style->{$plugin} : 
+            "Kirin::Cronjob::${style}::\u${plugin}";
+        $package->$method($job, $user, @args) and $job->delete;
     }
 }   
 

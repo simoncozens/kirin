@@ -13,7 +13,7 @@ package Kirin::Cronjob::Base::Database;
 }
 
 sub create {
-    my ($self, $user, $db_id) = @_;
+    my ($self, $job, $user, $db_id) = @_;
     my $db = Kirin::DB::UserDatabase->retrieve($db_id) or return;
     my $dbh = $self->master_db_handle or return;
     # Looks like you can't do placeholders on a GRANT?
@@ -31,7 +31,7 @@ sub create {
 }
 
 sub drop {
-    my ($self, $user, $db_id) = @_;
+    my ($self, $job, $user, $db_id) = @_;
     my $db = Kirin::DB::UserDatabase->retrieve($db_id) or return;
     my $dbh = $self->master_db_handle or return;
     my $sql = "REVOKE ALL PRIVILEGES ON ".$db->name.".* FROM ".$db->username.

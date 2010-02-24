@@ -7,7 +7,7 @@ my $dbh = DBI->connect($dsn, $user, $password)
     || die "Cannot connect to database Error: $!";
 
 sub setup { 
-    my ($user, $domain, $rid) = @_;
+    my ($user, $job, $domain, $rid) = @_;
     my $rec = Kirin::DB::SecondaryDns->retrieve($rid);
     if (!$rec) { return }
     $domain = Kirin::DB::Domain->retrieve($domain);
