@@ -182,6 +182,8 @@ sub try_to_add_new_user {
     $self->message("Need to give a username and a password to register"), return
         unless $u = $self->param("username") 
            and $p = $self->param("password");
+    $self->message("That username has already been taken"), return
+        if getpwent($u); # We don't want two "daemon" users, for instance
     my $user  = eval { Kirin::DB::User->create({ 
         username => $u,
         password => Authen::Passphrase::MD5Crypt->new(
