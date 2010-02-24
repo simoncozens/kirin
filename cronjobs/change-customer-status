@@ -1,0 +1,9 @@
+#!/usr/bin/perl
+do 'kirin.pl';
+
+for my $customer (Kirin::DB::Customer->search(status => "new")) { 
+    if (grep { $_->paid } $customer->invoices) { 
+        $customer->status("ok"); 
+    }
+}
+
