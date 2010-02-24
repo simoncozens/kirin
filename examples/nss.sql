@@ -32,4 +32,5 @@ CREATE VIEW nss_user AS
     expire
   FROM user, customer, nss_extra_columns,
   WHERE user.customer = customer.id
-    AND user.id       = nss_extra_columns.user;
+    AND user.id       = nss_extra_columns.user
+    AND customer.status = "ok";
