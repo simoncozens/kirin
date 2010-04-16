@@ -1,4 +1,7 @@
 package Kirin::Plugin::Broadband;
+use Time::Piece;
+use Time::Seconds;
+use Date::Holidays::EnglandWales;
 use strict;
 use base 'Kirin::Plugin';
 use Net::DSLProvider;
@@ -9,21 +12,36 @@ my $murphx;
 
 sub order {
     my ($self, $mm) = @_;
-    if (my $clid = $mm->param("clid")) {
-        my $mac;
-        if ($mac = uc $mm->param("mac")) {
-            if ($mac !~ MAC_RE) {
-                $mm->message("That MAC was not well-formed; please check.");
-                return $mm->respond("plugins/broadband/get-clid");
-            }
+    my $clid = $mm->param("clid");
+    $clid =~ s/\D*//g;
+    my $mac  = uc $mm->param("mac");
+    my $stage = $mm->param("stage");
+    goto "stage_$stage" if $stage;
+    
+    stage_1:
+        if (!$clid) { 
+            return $mm->respond("plugins/broadband/get-clid");
+        }
+        if (defined $mac and $mac !~ MAC_RE) {
+            $mm->message("That MAC was not well-formed; please check.");
+            return $mm->respond("plugins/broadband/get-clid");
         } 
+
+        # XXX
         my %avail = $murphx->services_available(
             cli => $clid,
             defined $mac ? (mac => $mac) : ()
         );
+        # Present list of available services, activation date.
         return $mm->respond("plugins/broadband/signup",
             services => \%avail);
-    }
+
+    stage_2:
+        # Present T&Cs XXX
+        1;    
+
+    stage_3:
+        # Check T&Cs accepted, and make the order XXX
 }
 
 sub view {
@@ -46,9 +64,100 @@ sub view {
     }
 }
 
-sub _handle_cancel_request {
-    my ($self, $customer, $service) = @_;
-    # If we're out of databases, get someone to (carefully) delete them
+sub request_mac {
+    my ($self, $mm) = @_;
+    my ($bb, $r); (($bb, $r) = $self->_has_bb($mm))[0] or return $r;
+    if ($bb->status !~ /^live/) { 
+        $mm->message("You request a MAC for a service that is not live"); 
+        return $self->view($mm);
+    }
+
+    my %out = eval {
+        $bb->provider_handle->request_mac("service-id" => $bb->token,
+            reason => "EU wishes to change ISP");
+    };
+
+    if ($@) { 
+        $mm->message("An error occurred and your request could not be completed");
+    }
+    $mm->respond("plugins/broadband/mac-requested",
+        mac_information => \%out # Template will sort out requested/got
+    );
+}
+
+sub password_change {
+    my ($self, $mm) = @_;
+    my ($bb, $r); (($bb, $r) = $self->_has_bb($mm))[0] or return $r;
+    
+    my $pass = $mm->param("password1");
+    if (!$pass) {
+        $mm->message("Please enter your new password");
+        fail: return $mm->respond("plugins/broadband/password_change");
+    }
+    if ($pass ne $mm->param("password2")) {
+        $mm->message("Passwords don't match"); goto fail;
+    }
+    if (!$self->_validate_password($mm, $pass)) { goto fail; }
+
+    my $ok = $bb->provider_handle->change_password("service-id" => $bb->token,
+        password => $pass);
+    if ($ok) { 
+        $mm->message("Password successfully changed: please remember to update your router settings!");
+    } else { 
+        $mm->message("Password WAS NOT changed");
+    }
+    $self->view($mm);
+}
+
+sub regrade {
+    # XXX
+}
+
+sub cancel { 
+    my ($self, $mm) = @_;
+    my ($bb, $r); (($bb, $r) = $self->_has_bb($mm))[0] or return $r;
+
+    if (!$mm->param("date")) {
+        $mm->message("Please choose a date for cancellation");
+        return $mm->respond("plugins/broadband/cancel", 
+            dates => $self->_dates
+        )
+    }
+
+    return $mm->respond("plugins/broadband/confirm-cancel")
+        if !$mm->param("confirm");
+    
+    my $out = eval {
+        $bb->provider_handle->cease("service-id" => $bb->token,
+            reason => "This service is no longer required",
+            crd    => $mm->param("date")
+        ); 
+    };
+    if ($@) { 
+        $mm->message("An error occurred and your request could not be completed: $@");
+        return $self->view($mm);
+    }
+    $bb->status("live-ceasing");
+
+    Kirin::DB::BroadbandEvent->create({
+        broadband   => $bb,
+        timestamp   => Time::Piece->new(),
+        class       => "cease",
+        token       => $out,
+        description => "Request to cease DSL provision"
+    });
+    $mm->message("Cease request sent to DSL provider");
+    $self->view($mm);
+}
+
+sub _has_bb {
+    my ($self, $mm) = @_;
+    my $bb = $mm->{customer}->broadband;
+    if (!$bb) { 
+        $mm->message("You don't have any broadband services!");
+        return (undef, $self->view($mm));
+    }
+    return $bb;
 }
 
 sub _setup_db {
@@ -69,6 +178,23 @@ sub _setup_db {
     Kirin::DB::Broadband->has_many(events => "Kirin::DB::BroadbandEvent");
     Kirin::DB::BroadbandUsage->has_a(broadband => "Kirin::DB::Broadband");
     Kirin::DB::Broadband->has_many(usage_reports => "Kirin::DB::BroadbandUsage");
+    Kirin::DB::BroadbandEvent->has_a(event_date => 'Time::Piece',
+      inflate => sub { Time::Piece->strptime(shift, "%Y-%m-%d") },
+      deflate => 'ymd',
+    );
+}
+
+sub _dates {
+    my $start = Time::Piece->new() + ONE_WEEK;
+    my $end = $start + ONE_MONTH;
+    my @dates;
+    while ( $start < $end ) {
+        push @dates, $start->new($start) # Make a copy
+            unless ($start->wday == 1 || $start->wday == 7) 
+                    || is_holiday($start->ymd);
+        $start += ONE_DAY;
+    }
+    return \@dates;
 }
 
 package Kirin::DB::Broadband;
@@ -125,7 +251,11 @@ CREATE TABLE IF NOT EXISTS broadband (
 
 CREATE TABLE IF NOT EXISTS broadband_event (
     id integer primary key not null,
-    broadband integer
+    broadband integer,
+    event_date datetime,
+    token varchar(255),
+    class varchar(255),
+    description text
 );
 
 CREATE TABLE IF NOT EXISTS broadband_usage (

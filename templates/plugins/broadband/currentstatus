@@ -1,6 +1,11 @@
 <h2> DSL Status </h2>
 
 <p> You are currently receiving [% broadband.packagename %] </p>
+
+<p> If you are planning to change broadband provider, <a
+href="/broadband/request_mac">click here</a> to request a Migration
+Authentication Code (MAC).</p>
+
 <p> Your login details are: </p>
 <h3> Bandwidth usage </h3>
 <table>
