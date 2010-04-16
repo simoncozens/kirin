@@ -37,11 +37,19 @@ sub order {
             services => \%avail);
 
     stage_2:
-        # Present T&Cs XXX
-        1;    
+        # Decode service XXX
+        my $provider = "Murphx"; # XXX;
+        my $handle = Kirin::DB::Broadband->provider_handle($provider);
+        return $mm->respond("plugins/broadband/terms-and-conditions",
+            tandc => $handle->terms_and_conditions()
+        );
 
     stage_3:
-        # Check T&Cs accepted, and make the order XXX
+        if (!$mm->param("tc_accepted")) { # Back you go!
+            $mm->param("Please accept the terms and conditions to complete your order"); 
+            goto stage_2;
+        }
+        # make the order XXX
 }
 
 sub view {
@@ -91,8 +99,7 @@ sub password_change {
     
     my $pass = $mm->param("password1");
     if (!$pass) {
-        $mm->message("Please enter your new password");
-        fail: return $mm->respond("plugins/broadband/password_change");
+        $mm->message("Please enter your new password"); goto fail;
     }
     if ($pass ne $mm->param("password2")) {
         $mm->message("Passwords don't match"); goto fail;
@@ -106,7 +113,9 @@ sub password_change {
     } else { 
         $mm->message("Password WAS NOT changed");
     }
-    $self->view($mm);
+    return $self->view($mm);
+
+    fail: return $mm->respond("plugins/broadband/password_change");
 }
 
 sub regrade {
@@ -201,7 +210,7 @@ package Kirin::DB::Broadband;
 
 sub provider_handle {
     my $self = shift;
-    my $p = $self->provider;
+    my $p = shift || $self->provider;
     my $module = "Net::DSLProvider::".ucfirst($p);
     $module->require or die "Can't find a provider module for $p:$@";
     $module->new({ 
