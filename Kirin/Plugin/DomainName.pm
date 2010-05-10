@@ -12,21 +12,40 @@ sub list {
 }
 
 sub register {
+    my ($self, $mm) = @_;
+    # Get a domain name
+    my $domain = $mm->param("domainpart");
+    my $tld    = $mm->param("tld");
+    if (!$domain or !$tld) { 
+        return $mm->respond("plugins/domain_name/register");
+    }
+
+    $domain =~ s/\.$//;
+    if ($domain =~ /\./) { 
+        $mm->message("Domain name was malformed");
+        return $mm->respond("plugins/domain_name/register");
+    }
+    my $reg = Kirin->args->{registrar_mapper}->($tld);
+    if (!$reg) {
+        $mm->message("We don't handle that top-level domain");
+        return $mm->respond("plugins/domain_name/register");
+    }
+
+    # Check availability
+    my %rv = $self->_get_reghandle($mm, $reg);
+    return $rv{response} if exists $rv{response};
+    my $r = $rv{reghandle};
+    if (!$r->is_available($domain.$tld)) {
+        $mm->message("That domain is not available; please choose another");
+        return $mm->respond("plugins/domain_name/register");
+    }
+
+    # Get contact addresses, nameservers and register
 
 }
 
-sub _get_domain {
-    my ($self, $mm, $domainid) = @_;
-    my $d = Kirin::DB::DomainName->retrieve($domainid);
-    if (!$d) { 
-        $mm->message("That domain doesn't exist");
-        return ( response => $self->list($mm) );
-    }
-    if ($d->customer != $mm->{customer}) {
-        $mm->message("That's not your domain");
-        return ( response => $self->list($mm) );
-    }
-    my $reg = $d->registrar;
+sub _get_reghandle {
+    my ($self, $mm, $reg) = @_;
     my %credentials = Kirin->args->{registrar_credentials}{$reg};
     if (!%credentials) {
         $mm->message("Internal error: Couldn't connect to that registrar");
@@ -51,7 +70,23 @@ sub _get_domain {
         );
         return ( response => $self->list($mm) );
     }
-    return (object => $d, reghandle => $r);
+    return reghandle => $r;
+}
+
+sub _get_domain {
+    my ($self, $mm, $domainid) = @_;
+    my $d = Kirin::DB::DomainName->retrieve($domainid);
+    if (!$d) { 
+        $mm->message("That domain doesn't exist");
+        return ( response => $self->list($mm) );
+    }
+    if ($d->customer != $mm->{customer}) {
+        $mm->message("That's not your domain");
+        return ( response => $self->list($mm) );
+    }
+    my %stuff = $self->_get_reghandle($d->registrar);
+    return (response => $stuff{response}) if exists $stuff{response};
+    return (object => $d, reghandle => $stuff{reghandle});
 }
 
 sub change_contacts {
