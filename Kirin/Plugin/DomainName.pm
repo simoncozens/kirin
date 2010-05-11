@@ -1,4 +1,5 @@
 package Kirin::Plugin::DomainName;
+use JSON::XS;
 use Net::DomainRegistration::Simple;
 use List::Util qw/sum/;
 use strict;
@@ -30,18 +31,41 @@ sub register {
         $mm->message("We don't handle that top-level domain");
         return $mm->respond("plugins/domain_name/register");
     }
+    $domain .= ".$tld";
 
     # Check availability
     my %rv = $self->_get_reghandle($mm, $reg);
     return $rv{response} if exists $rv{response};
     my $r = $rv{reghandle};
-    if (!$r->is_available($domain.$tld)) {
+    if (!$r->is_available($domain)) {
         $mm->message("That domain is not available; please choose another");
         return $mm->respond("plugins/domain_name/register");
     }
 
     # Get contact addresses, nameservers and register
+    %rv = $self->_get_register_args($mm);
+    return $rv{response} if exists $rv{response};
+    if ($r->register(domain => $domain, %rv)) {
+        $mm->message("Domain registered!");
+        Kirin::DB::DomainName->create({
+            customer       => $mm->{customer},
+            domain         => $domain,
+            registrar      => $reg,
+            billing        => encode_json($rv{billing}),
+            admin          => encode_json($rv{admin}),
+            technical      => encode_json($rv{tech}),
+            nameserverlist => encode_json($rv{nameservers}),
+            expires        => NOW + $rv{duration} * ONE_YEAR # XXX Maybe
+        });
+        return $mm->respond("plugins/domain_name/list");
+    }
+}
 
+
+sub _get_register_args {
+    # Give me back: billing, admin, tech, nameservers, duration
+    my ($self, $mm) = @_;
+    # XXX
 }
 
 sub _get_reghandle {
@@ -112,12 +136,13 @@ package Kirin::DB::DomainName;
 sub sql{q/
 CREATE TABLE IF NOT EXISTS domain_name ( id integer primary key not null,
     customer integer,
-    domain varchar(40) NOT NULL, 
+    domain varchar(255) NOT NULL, 
     registrar varchar(40),
     billing text,
     admin text,
     technical text,
-    nameserverlist varchar(255)
+    nameserverlist varchar(255),
+    expires datetime
 );
 /}
 1;
