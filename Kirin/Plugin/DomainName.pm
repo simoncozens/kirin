@@ -51,7 +51,7 @@ sub register {
         Kirin::DB::DomainName->create({
             customer       => $mm->{customer},
             domain         => $domain,
-            registrar      => $reg,
+            registrar      => $tld_handler->registrar,
             billing        => encode_json($rv{billing}),
             admin          => encode_json($rv{admin}),
             technical      => encode_json($rv{tech}),
@@ -88,7 +88,7 @@ sub _get_reghandle {
     my $r = Net::DomainRegistration::Simple->new(
         registrar => $reg,
         %credentials
-    ) 
+    );
     if (!$r) {
         $mm->message("Internal error: Couldn't connect to that registrar");
         Kirin::Utils->email_boss(
