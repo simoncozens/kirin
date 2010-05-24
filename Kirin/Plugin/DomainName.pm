@@ -26,15 +26,16 @@ sub register {
         $mm->message("Domain name was malformed");
         return $mm->respond("plugins/domain_name/register");
     }
-    my $reg = Kirin->args->{registrar_mapper}->($tld);
-    if (!$reg) {
+
+    my $tld_handler = Kirin::DB::TldHandler->retrieve($tld);
+    if (!$tld_handler) {
         $mm->message("We don't handle that top-level domain");
         return $mm->respond("plugins/domain_name/register");
     }
-    $domain .= ".$tld";
+    $domain .= ".".$tld_handler->tld;
 
     # Check availability
-    my %rv = $self->_get_reghandle($mm, $reg);
+    my %rv = $self->_get_reghandle($mm, $tld_handler->registrar);
     return $rv{response} if exists $rv{response};
     my $r = $rv{reghandle};
     if (!$r->is_available($domain)) {
@@ -55,12 +56,15 @@ sub register {
             admin          => encode_json($rv{admin}),
             technical      => encode_json($rv{tech}),
             nameserverlist => encode_json($rv{nameservers}),
-            expires        => NOW + $rv{duration} * ONE_YEAR # XXX Maybe
+            expires        => NOW + $tld_handler->duration * ONE_YEAR 
+        });
+        $mm->{customer}->bill_for({
+            description  => "Registration of domain $domain",
+            cost         => $tld_handler->price
         });
         return $mm->respond("plugins/domain_name/list");
     }
 }
-
 
 sub _get_register_args {
     # Give me back: billing, admin, tech, nameservers, duration
@@ -143,6 +147,13 @@ CREATE TABLE IF NOT EXISTS domain_name ( id integer primary key not null,
     technical text,
     nameserverlist varchar(255),
     expires datetime
+);
+
+CREATE TABLE IF NOT EXISTS tld_handler ( id integer primary key not null,
+    tld varchar(20),
+    registrar varchar(40),
+    price number(5,2),
+    duration integer
 );
 /}
 1;
