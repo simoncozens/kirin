@@ -4,6 +4,7 @@ use Net::DomainRegistration::Simple;
 use List::Util qw/sum/;
 use strict;
 use base 'Kirin::Plugin';
+use Time::Seconds;
 sub user_name {"Domain Names"}
 
 sub list {
@@ -56,7 +57,7 @@ sub register {
             admin          => encode_json($rv{admin}),
             technical      => encode_json($rv{tech}),
             nameserverlist => encode_json($rv{nameservers}),
-            expires        => NOW + $tld_handler->duration * ONE_YEAR 
+            expires        => Time::Piece->new + $tld_handler->duration * ONE_YEAR 
         });
         $mm->{customer}->bill_for({
             description  => "Registration of domain $domain",
