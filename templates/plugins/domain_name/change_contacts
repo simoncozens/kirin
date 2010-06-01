@@ -1,0 +1,6 @@
+<h3> Contact details for [% domain.domain %] </h3>
+
+<form method="post">
+[% PROCESS plugins/domain_name/contactset %]
+<input type="submit" value="Change" name="change">
+</form>

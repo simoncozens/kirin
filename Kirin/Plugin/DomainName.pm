@@ -10,6 +10,20 @@ sub name      { "domain_name" }
 sub default_action { "list" }
 sub user_name {"Domain Names"}
 
+my @fieldmap = (
+    # Label, field for N::DR::S, field from customer profile
+    ["First Name", "firstname", "forename"],
+    ["Last Name", "lastname", "surname"],
+    ["Company", "company", "org"],
+    ["Address", "address", "address"],
+    ["City", "city", "town"],
+    ["State", "state", "county"],
+    ["Postcode", "postcode", "postcode"],
+    ["Country", "country", "country"],
+    ["Email", "email", "email"],
+    ["Phone", "phone", "phone"],
+);
+
 sub list {
     my ($self, $mm) = @_;
     my (@names) = Kirin::DB::DomainName->search(customer => $mm->{customer});
@@ -23,19 +37,8 @@ sub register {
     my $tld    = $mm->param("tld");
     my %args = (tlds      => [Kirin::DB::TldHandler->retrieve_all],
                 oldparams => $mm->{req}->parameters,
-                fields => [
-                    # Label, field for N::DR::S, field from customer profile
-                    ["First Name", "firstname", "forename"],
-                    ["Last Name", "lastname", "surname"],
-                    ["Company", "company", "org"],
-                    ["Address", "address", "address"],
-                    ["City", "city", "town"],
-                    ["State", "state", "county"],
-                    ["Postcode", "postcode", "postcode"],
-                    ["Country", "country", "country"],
-                    ["Email", "email", "email"],
-                    ["Phone", "phone", "phone"],
-               ] );
+                fields => \@fieldmap
+               );
     if (!$domain or !$tld) { 
         return $mm->respond("plugins/domain_name/register", %args);
     }
@@ -67,7 +70,7 @@ sub register {
     }
 
     # Get contact addresses, nameservers and register
-    %rv = $self->_get_register_args($mm, $tld_handler, %args);
+    %rv = $self->_get_register_args($mm, 0, $tld_handler, %args);
     return $rv{response} if exists $rv{response};
     if ($r->register(domain => $domain, %rv)) {
         $mm->message("Domain registered!");
@@ -77,7 +80,7 @@ sub register {
             registrar      => $tld_handler->registrar,
             billing        => encode_json($rv{billing}),
             admin          => encode_json($rv{admin}),
-            technical      => encode_json($rv{tech}),
+            technical      => encode_json($rv{technical}),
             nameserverlist => encode_json($rv{nameservers}),
             expires        => Time::Piece->new + $tld_handler->duration * ONE_YEAR 
         });
@@ -90,41 +93,43 @@ sub register {
 }
 
 sub _get_register_args {
-    # Give me back: billing, admin, tech, nameservers, duration
-    my ($self, $mm, $tld_handler, %args) = @_;
+    # Give me back: billing, admin, technical, nameservers, duration
+    my ($self, $mm, $just_contacts, $tld_handler, %args) = @_;
     my %rv;
     # Do the initial copy
     for my $field (map { $_->[1] } @{$args{fields}}) {
-        for (qw/admin billing tech/) {
+        for (qw/admin billing technical/) {
             my $answer = $mm->param($_."_".$field);
             $rv{$_}{$field} = $answer;
         }
     }
 
-    if ($mm->param("usedefaultns")) { 
-        $rv{nameservers} = [
-            Kirin->args->{primary_dns_server},
-            Kirin->args->{secondary_dns_server},
-        ]
-    } else {
-        # Check that they're IP addresses.
-        my @ns = map { $mm->param($_) } qw(primary_ns secondary_ns);
-        my $ok = 1;
-        for (@ns) {
-            if (!/^$RE{net}{IPv4}$/) { 
-                $mm->message("Nameserver is not a valid IP address");
-                $ok = 0;
+    if (!$just_contacts) {
+        if ($mm->param("usedefaultns")) { 
+            $rv{nameservers} = [
+                Kirin->args->{primary_dns_server},
+                Kirin->args->{secondary_dns_server},
+            ]
+        } else {
+            # Check that they're IP addresses.
+            my @ns = map { $mm->param($_) } qw(primary_ns secondary_ns);
+            my $ok = 1;
+            for (@ns) {
+                if (!/^$RE{net}{IPv4}$/) { 
+                    $mm->message("Nameserver is not a valid IP address");
+                    $ok = 0;
+                }
             }
+            if ($ok) { $rv{nameservers} = \@ns }
         }
-        if ($ok) { $rv{nameservers} = \@ns }
     }
 
     # Now do some tidy-up
     my $cmess;
     $rv{admin} = $rv{billing} if $mm->param("copybilling2admin");
-    $rv{tech} = $rv{billing}  if $mm->param("copybilling2tech");
+    $rv{technical} = $rv{billing}  if $mm->param("copybilling2technical");
 
-    for (qw/admin billing tech/) {
+    for (qw/admin billing technical/) {
         $rv{$_}{company} ||= "n/a";
         if ($rv{$_}{country} !~ /^([a-z]{2})$/i) { 
             delete $rv{$_}{country};
@@ -139,11 +144,13 @@ sub _get_register_args {
 
     # Final check for all parameters
     for my $field (map { $_->[1] } @{$args{fields}}) {
-        for (qw/admin billing tech/) {
+        for (qw/admin billing technical/) {
             if (! $rv{$_}{$field}) {
                 $args{notsupplied}{"${_}_$field"}++;
                 $rv{response} = 
-                    $mm->respond("plugins/domain_name/register", %args);
+                    $just_contacts ? 
+                        $mm->respond("plugins/domain_name/change_contacts", %args)
+                    :   $mm->respond("plugins/domain_name/register", %args);
             }
         }
     }
@@ -190,7 +197,7 @@ sub _get_domain {
         $mm->message("That's not your domain");
         return ( response => $self->list($mm) );
     }
-    my %stuff = $self->_get_reghandle($d->registrar);
+    my %stuff = $self->_get_reghandle($mm, $d->registrar);
     return (response => $stuff{response}) if exists $stuff{response};
     return (object => $d, reghandle => $stuff{reghandle});
 }
@@ -200,6 +207,31 @@ sub change_contacts {
     my %rv = $self->_get_domain($mm, $domainid);
     return $rv{response} if exists $rv{response};
 
+    my ($domain, $handle) = ($rv{object}, $rv{reghandle});
+    my %args = ( fields => \@fieldmap, domain => $domain );
+
+    # Massage existing stuff into oldparams
+    for my $ctype (qw/billing admin technical/) {
+        my $it = decode_json($rv{object}->$ctype);
+        for (@fieldmap) {
+            $args{oldparams}{$ctype."_".$_->[1]} = $it->{$_->[1]};
+            $mm->{req}->parameters->{$ctype."_".$_->[1]} = $it->{$_->[1]};
+        }
+    }
+
+    %rv = $self->_get_register_args($mm, 1, $handle, %args);
+    use Data::Dumper; warn Dumper(\%rv);
+    return $rv{response} if exists $rv{response};
+
+    if ($mm->param("change") and $handle->change_contact(domain => $domain->domain, %rv)) {
+        for (qw/billing admin technical/) {
+            $domain->$_(encode_json($rv{$_}));
+        }
+        $domain->update;
+        $mm->message("Contact updated successfully");
+        return $self->list($mm);
+    }
+    $mm->respond("plugins/domain_name/change_contacts", %args);
 }
 
 sub change_nameservers {
