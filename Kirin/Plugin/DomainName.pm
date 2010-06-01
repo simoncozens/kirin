@@ -5,6 +5,8 @@ use List::Util qw/sum/;
 use strict;
 use base 'Kirin::Plugin';
 use Time::Seconds;
+sub name      { "domain_name" }
+sub default_action { "list" }
 sub user_name {"Domain Names"}
 
 sub list {
