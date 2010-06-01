@@ -17,15 +17,22 @@
     <table>
     <tr><td>&nbsp;</td><th>Billing</th><th>Admin</th><th>Technical</th></tr>
     <tr><th>Copy from billing</th><td>&nbsp;</td>
-        <td><input type="checkbox" name="copybilling2admin" value="1" checked></td>
-        <td><input type="checkbox" name="copybilling2tech" value="1" checked></td>
+        <td><input type="checkbox" name="copybilling2admin" value="1" 
+        [% "checked" IF NOT oldparams OR oldparams.copybilling2admin %]
+        ></td>
+        <td><input type="checkbox" name="copybilling2tech" value="1" 
+        [% "checked" IF NOT oldparams OR oldparams.copybilling2tech %]
+        ></td>
     </tr>
     [% FOR f = fields %]
     <tr>
         <th>[%f.0%]</th>
-        <td><input name="billing_[%f.1%]" value="[%SET c = f.2; self.customer.$c|html%]"></td>
-        <td><input name="admin_[%f.1%]"></td>
-        <td><input name="tech_[%f.1%]"></td>
+        <td><input name="billing_[%f.1%]" value="[%SET c = f.2; 
+        SET x = "billing_" _ f.1; oldparams.$x || self.customer.$c |html%]"></td>
+        <td><input name="admin_[%f.1%]" value="[%
+        SET x = "admin_" _ f.1; oldparams.$x |html%]"></td>
+        <td><input name="tech_[%f.1%]" value="[%
+        SET x = "tech_" _ f.1; oldparams.$x |html%]"></td>
     </tr>
     [% END %]
     <p>Duration</p>
