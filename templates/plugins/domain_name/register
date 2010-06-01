@@ -41,8 +41,7 @@
         </td>
     </tr>
     [% END %]
-    <p>Duration</p>
-    <p>Nameservers</p>
+    <p>Nameservers:</p>
     <input type="submit" value="Register" name="register">
 [% ELSE %]
 <input type="submit" value="Check Availability" name="check">

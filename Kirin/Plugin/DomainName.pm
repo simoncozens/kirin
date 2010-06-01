@@ -74,10 +74,10 @@ sub register {
             customer       => $mm->{customer},
             domain         => $domain,
             registrar      => $tld_handler->registrar,
-#            billing        => encode_json($rv{billing}),
-#            admin          => encode_json($rv{admin}),
-#            technical      => encode_json($rv{tech}),
-#            nameserverlist => encode_json($rv{nameservers}),
+            billing        => encode_json($rv{billing}),
+            admin          => encode_json($rv{admin}),
+            technical      => encode_json($rv{tech}),
+            nameserverlist => encode_json($rv{nameservers}),
             expires        => Time::Piece->new + $tld_handler->duration * ONE_YEAR 
         });
         $mm->{customer}->bill_for({
@@ -109,9 +109,6 @@ sub _get_register_args {
 
     $rv{admin} = $rv{billing} if $mm->param("copybilling2admin");
     $rv{tech} = $rv{billing}  if $mm->param("copybilling2tech");
-
-    # XXX Copy in default duration from handler
-    $rv{duration} = $mm->param("duration") || $tld_handler->duration;
 
     # Final check for all parameters
     for my $field (map { $_->[1] } @{$args{fields}}) {
