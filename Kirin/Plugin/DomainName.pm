@@ -45,10 +45,12 @@ sub register {
     my $r = $rv{reghandle};
     if (!$r->is_available($domain)) {
         $mm->message("That domain is not available; please choose another");
-        return $mm->respond("plugins/domain_name/register", %args);
     }
 
     $args{available} = 1;
+    if (!$mm->param("register")) { 
+        return $mm->respond("plugins/domain_name/register", %args);
+    }
 
     # Get contact addresses, nameservers and register
     %rv = $self->_get_register_args($mm, %args);
@@ -75,8 +77,21 @@ sub register {
 
 sub _get_register_args {
     # Give me back: billing, admin, tech, nameservers, duration
-    my ($self, $mm) = @_;
+    my ($self, $mm, %args) = @_;
+    my %rv;
     # XXX
+    $rv{admin} = $rv{billing} if $mm->param("copybilling2admin");
+    $rv{tech} = $rv{billing}  if $mm->param("copybilling2tech");
+
+    # Final check for all parameters
+    for (qw/duration admin tech billing nameservers/) {
+        if (!exists $rv{$_}) {
+            $mm->message("Required $_ information not supplied");
+            $rv{response} = 
+                $mm->respond("plugins/domain_name/register", %args);
+        }
+    }
+    return %rv;
 }
 
 sub _get_reghandle {

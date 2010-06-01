@@ -14,8 +14,8 @@
     <p> The domain is available for purchase. Please enter the contact
     details to register this domain. </p>
     <p> ... </p>
-    <input type="submit" value="Register">
+    <input type="submit" value="Register" name="register">
 [% ELSE %]
-<input type="submit" value="Check Availability">
+<input type="submit" value="Check Availability" name="check">
 [% END %]
 </form>
