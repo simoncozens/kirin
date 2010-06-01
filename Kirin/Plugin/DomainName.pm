@@ -1,4 +1,5 @@
 package Kirin::Plugin::DomainName;
+use Regexp::Common qw/net/;
 use JSON::XS;
 use Net::DomainRegistration::Simple;
 use List::Util qw/sum/;
@@ -99,16 +100,42 @@ sub _get_register_args {
             $rv{$_}{$field} = $answer;
         }
     }
-    # XXX Nameservers, duration
+
+    if ($mm->param("usedefaultns")) { 
+        $rv{nameservers} = [
+            Kirin->args->{primary_dns_server},
+            Kirin->args->{secondary_dns_server},
+        ]
+    } else {
+        # Check that they're IP addresses.
+        my @ns = map { $mm->param($_) } qw(primary_ns secondary_ns);
+        my $ok = 1;
+        for (@ns) {
+            if (!/^$RE{net}{IPv4}$/) { 
+                $mm->message("Nameserver is not a valid IP address");
+                $ok = 0;
+            }
+        }
+        if ($ok) { $rv{nameservers} = \@ns }
+    }
 
     # Now do some tidy-up
-    for (qw/admin billing tech/) {
-        $rv{$_}{company} ||= "n/a";
-    }
-    # XXX
-
+    my $cmess;
     $rv{admin} = $rv{billing} if $mm->param("copybilling2admin");
     $rv{tech} = $rv{billing}  if $mm->param("copybilling2tech");
+
+    for (qw/admin billing tech/) {
+        $rv{$_}{company} ||= "n/a";
+        if ($rv{$_}{country} !~ /^([a-z]{2})$/i) { 
+            delete $rv{$_}{country};
+            $cmess++ || $mm->message("Country should be submitted as a two-letter ISO country code");
+        }
+        if (!Email::Valid->address($rv{$_}{email})) {
+            delete $rv{$_}{email};
+            $mm->message("Email address for $_ contact is not valid");
+        }
+        # Anything else?
+    }
 
     # Final check for all parameters
     for my $field (map { $_->[1] } @{$args{fields}}) {

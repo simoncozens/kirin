@@ -11,6 +11,8 @@
 [%END%]
 </select>
 [% IF available %]
+    <h3> Contact details </h3>
+
     <p> The domain is available for purchase. Please enter the contact
     details to register this domain. </p>
 
@@ -41,7 +43,21 @@
         </td>
     </tr>
     [% END %]
-    <p>Nameservers:</p>
+    </table>
+    [% IF notsupplied %]
+    <p class="error"> Please complete the fields marked *</p>
+    [% END %]
+
+    <h3>Nameservers</h3>
+
+        <p>
+            <input type="checkbox" name="usedefaultns">
+            Host this domain on our nameservers.
+        </p>
+        <p> <i>Or</i> supply your own nameservers for this domain:</p>
+        <p> Primary nameserver: <input type="primary_ns"> </p>
+        <p> Secondary nameserver: <input type="secondary_ns"> </p>
+
     <input type="submit" value="Register" name="register">
 [% ELSE %]
 <input type="submit" value="Check Availability" name="check">
