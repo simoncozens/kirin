@@ -13,7 +13,23 @@
 [% IF available %]
     <p> The domain is available for purchase. Please enter the contact
     details to register this domain. </p>
-    <p> ... </p>
+
+    <table>
+    <tr><td>&nbsp;</td><th>Billing</th><th>Admin</th><th>Technical</th></tr>
+    <tr><th>Copy from billing</th><td>&nbsp;</td>
+        <td><input type="checkbox" name="copybilling2admin" value="1" checked></td>
+        <td><input type="checkbox" name="copybilling2tech" value="1" checked></td>
+    </tr>
+    [% FOR f = fields %]
+    <tr>
+        <th>[%f.0%]</th>
+        <td><input name="billing_[%f.1%]" value="[%SET c = f.2; self.customer.$c|html%]"></td>
+        <td><input name="admin_[%f.1%]"></td>
+        <td><input name="tech_[%f.1%]"></td>
+    </tr>
+    [% END %]
+    <p>Duration</p>
+    <p>Nameservers</p>
     <input type="submit" value="Register" name="register">
 [% ELSE %]
 <input type="submit" value="Check Availability" name="check">

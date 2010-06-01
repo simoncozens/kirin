@@ -21,7 +21,20 @@ sub register {
     my $domain = $mm->param("domainpart");
     my $tld    = $mm->param("tld");
     my %args = (tlds      => [Kirin::DB::TldHandler->retrieve_all],
-                oldparams => $mm->{req}->parameters);
+                oldparams => $mm->{req}->parameters,
+                fields => [
+                    # Label, field for N::DR::S, field from customer profile
+                    ["First Name", "firstname", "forename"],
+                    ["Last Name", "lastname", "surname"],
+                    ["Company", "company", "org"],
+                    ["Address", "address", "address"],
+                    ["City", "city", "town"],
+                    ["State", "state", "county"],
+                    ["Postcode", "postcode", "postcode"],
+                    ["Country", "country", "country"],
+                    ["Email", "email", "email"],
+                    ["Phone", "phone", "phone"],
+               ] );
     if (!$domain or !$tld) { 
         return $mm->respond("plugins/domain_name/register", %args);
     }
