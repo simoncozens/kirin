@@ -20,20 +20,22 @@ sub register {
     # Get a domain name
     my $domain = $mm->param("domainpart");
     my $tld    = $mm->param("tld");
+    my %args = (tlds      => [Kirin::DB::TldHandler->retrieve_all],
+                oldparams => $mm->{req}->parameters);
     if (!$domain or !$tld) { 
-        return $mm->respond("plugins/domain_name/register");
+        return $mm->respond("plugins/domain_name/register", %args);
     }
 
     $domain =~ s/\.$//;
     if ($domain =~ /\./) { 
         $mm->message("Domain name was malformed");
-        return $mm->respond("plugins/domain_name/register");
+        return $mm->respond("plugins/domain_name/register", %args);
     }
 
     my $tld_handler = Kirin::DB::TldHandler->retrieve($tld);
     if (!$tld_handler) {
         $mm->message("We don't handle that top-level domain");
-        return $mm->respond("plugins/domain_name/register");
+        return $mm->respond("plugins/domain_name/register", %args);
     }
     $domain .= ".".$tld_handler->tld;
 
@@ -43,11 +45,13 @@ sub register {
     my $r = $rv{reghandle};
     if (!$r->is_available($domain)) {
         $mm->message("That domain is not available; please choose another");
-        return $mm->respond("plugins/domain_name/register");
+        return $mm->respond("plugins/domain_name/register", %args);
     }
 
+    $args{available} = 1;
+
     # Get contact addresses, nameservers and register
-    %rv = $self->_get_register_args($mm);
+    %rv = $self->_get_register_args($mm, %args);
     return $rv{response} if exists $rv{response};
     if ($r->register(domain => $domain, %rv)) {
         $mm->message("Domain registered!");
@@ -55,17 +59,17 @@ sub register {
             customer       => $mm->{customer},
             domain         => $domain,
             registrar      => $tld_handler->registrar,
-            billing        => encode_json($rv{billing}),
-            admin          => encode_json($rv{admin}),
-            technical      => encode_json($rv{tech}),
-            nameserverlist => encode_json($rv{nameservers}),
+#            billing        => encode_json($rv{billing}),
+#            admin          => encode_json($rv{admin}),
+#            technical      => encode_json($rv{tech}),
+#            nameserverlist => encode_json($rv{nameservers}),
             expires        => Time::Piece->new + $tld_handler->duration * ONE_YEAR 
         });
         $mm->{customer}->bill_for({
             description  => "Registration of domain $domain",
             cost         => $tld_handler->price
         });
-        return $mm->respond("plugins/domain_name/list");
+        return $self->list($mm);
     }
 }
 
@@ -136,6 +140,10 @@ sub change_nameservers {
 sub _setup_db {
     shift->_ensure_table("domain_name");
     # XXX
+    Kirin::DB::DomainName->has_a(expires => 'Time::Piece',
+      inflate => sub { Time::Piece->strptime(shift, "%Y-%m-%d") },
+      deflate => 'ymd',
+    );
 }
 
 package Kirin::DB::DomainName;

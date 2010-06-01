@@ -1,0 +1,21 @@
+<h3>Register a new domain</h3>
+
+<form method="post">
+
+<p>Domain name: <input name="domainpart" value="[% oldparams.domainpart
+|html%]"/><select name="tld">
+[% FOR t = tlds %]
+    <option value="[%t.id|html%]"
+        [% "SELECTED" IF oldparams.tld == t.id %]
+    >.[%t.tld|html%] ([%t.price%]/[%t.duration%] years)</option>
+[%END%]
+</select>
+[% IF available %]
+    <p> The domain is available for purchase. Please enter the contact
+    details to register this domain. </p>
+    <p> ... </p>
+    <input type="submit" value="Register">
+[% ELSE %]
+<input type="submit" value="Check Availability">
+[% END %]
+</form>

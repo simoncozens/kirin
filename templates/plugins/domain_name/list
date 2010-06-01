@@ -1,0 +1,19 @@
+<h2> Domain Name Registrations </h2>
+[% IF names.size %]
+<h3>You have registered the following domain names:</h3>
+
+<table>
+[% FOR n = names %]
+    <tr> <th> [%n.domain%] </th>
+        <td> Expires [% n.expires.ymd %] </td>
+        <td> <a href="/domain_name/change_contacts/[%n.id%]">Change contacts</a></td>
+        <td> <a href="/domain_name/change_nameservers/[%n.id%]">Change nameservers</a></td>
+        <td> <a href="/domain_name/revoke/[%n.id%]">Revoke registration</a></td>
+    </tr>
+[% END %]
+</table>
+[% ELSE %]
+<p>You have no domain names registered. (That we know about.)</p>
+[% END %]
+
+<p><a href="/domain_name/register">Register a new domain</a>.</p>
