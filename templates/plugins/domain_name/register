@@ -28,11 +28,17 @@
     <tr>
         <th>[%f.0%]</th>
         <td><input name="billing_[%f.1%]" value="[%SET c = f.2; 
-        SET x = "billing_" _ f.1; oldparams.$x || self.customer.$c |html%]"></td>
+        SET x = "billing_" _ f.1; oldparams.$x || self.customer.$c |html%]">
+        [% "<span class='error'>*</span>" IF notsupplied.$x %]
+        </td>
         <td><input name="admin_[%f.1%]" value="[%
-        SET x = "admin_" _ f.1; oldparams.$x |html%]"></td>
+        SET x = "admin_" _ f.1; oldparams.$x |html%]">
+        [% "<span class='error'>*</span>" IF notsupplied.$x %]
+        </td>
         <td><input name="tech_[%f.1%]" value="[%
-        SET x = "tech_" _ f.1; oldparams.$x |html%]"></td>
+        SET x = "tech_" _ f.1; oldparams.$x |html%]">
+        [% "<span class='error'>*</span>" IF notsupplied.$x %]
+        </td>
     </tr>
     [% END %]
     <p>Duration</p>

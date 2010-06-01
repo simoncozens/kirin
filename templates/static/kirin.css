@@ -16,3 +16,4 @@ padding: 5px; max-width: 250px}
 table > tbody > tr:nth-child(even) {background: #ddf}
 table > tbody > tr:nth-child(odd) {background: #eef}
 .customerselect { float:right; font-size: 80% }
+.error { color: #f33 }

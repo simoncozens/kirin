@@ -66,7 +66,7 @@ sub register {
     }
 
     # Get contact addresses, nameservers and register
-    %rv = $self->_get_register_args($mm, %args);
+    %rv = $self->_get_register_args($mm, $tld_handler, %args);
     return $rv{response} if exists $rv{response};
     if ($r->register(domain => $domain, %rv)) {
         $mm->message("Domain registered!");
@@ -90,18 +90,37 @@ sub register {
 
 sub _get_register_args {
     # Give me back: billing, admin, tech, nameservers, duration
-    my ($self, $mm, %args) = @_;
+    my ($self, $mm, $tld_handler, %args) = @_;
     my %rv;
+    # Do the initial copy
+    for my $field (map { $_->[1] } @{$args{fields}}) {
+        for (qw/admin billing tech/) {
+            my $answer = $mm->param($_."_".$field);
+            $rv{$_}{$field} = $answer;
+        }
+    }
+    # XXX Nameservers, duration
+
+    # Now do some tidy-up
+    for (qw/admin billing tech/) {
+        $rv{$_}{company} ||= "n/a";
+    }
     # XXX
+
     $rv{admin} = $rv{billing} if $mm->param("copybilling2admin");
     $rv{tech} = $rv{billing}  if $mm->param("copybilling2tech");
 
+    # XXX Copy in default duration from handler
+    $rv{duration} = $mm->param("duration") || $tld_handler->duration;
+
     # Final check for all parameters
-    for (qw/duration admin tech billing nameservers/) {
-        if (!exists $rv{$_}) {
-            $mm->message("Required $_ information not supplied");
-            $rv{response} = 
-                $mm->respond("plugins/domain_name/register", %args);
+    for my $field (map { $_->[1] } @{$args{fields}}) {
+        for (qw/admin billing tech/) {
+            if (! $rv{$_}{$field}) {
+                $args{notsupplied}{"${_}_$field"}++;
+                $rv{response} = 
+                    $mm->respond("plugins/domain_name/register", %args);
+            }
         }
     }
     return %rv;
