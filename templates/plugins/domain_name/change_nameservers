@@ -1,0 +1,12 @@
+<h3> Nameservers for [% domain.domain %] </h3>
+
+<form method="post">
+    <p>
+        <input type="checkbox" name="usedefaultns">
+        Host this domain on our nameservers.
+    </p>
+    <p> <i>Or</i> supply your own nameservers for this domain:</p>
+    <p> Primary nameserver: <input name="primary_ns" value="[%current.0|html%]"> </p>
+    <p> Secondary nameserver: <input name="secondary_ns" value="[%current.1|html%]"> </p>
+<input type="submit" value="Change" name="change">
+</form>

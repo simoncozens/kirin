@@ -238,6 +238,34 @@ sub change_nameservers {
     my ($self, $mm, $domainid) = @_;
     my %rv = $self->_get_domain($mm, $domainid);
     return $rv{response} if exists $rv{response};
+
+    my ($domain, $handle) = ($rv{object}, $rv{reghandle});
+    my @current = @{decode_json($domain->nameserverlist)};
+    my ($primary, $secondary) = map { $mm->param($_) } qw/primary_ns secondary_ns/;
+    if ($mm->param("usedefaultns")) { 
+        ($primary, $secondary) = (Kirin->args->{primary_dns_server},
+            Kirin->args->{secondary_dns_server});
+    }
+
+    if ($primary and $secondary) { 
+        # Check 'em
+        if ($primary !~ /^$RE{net}{domain}{-nospace}$/
+            or $secondary !~ /^$RE{net}{domain}{-nospace}$/) { 
+            $mm->message("Nameserver address should be a hostname");
+        } elsif ($handle->set_nameservers(domain => $domain->domain,
+            nameservers => [ $primary, $secondary ])) {
+            $domain->nameserverlist(encode_json([ $primary, $secondary ]));
+            $domain->update;
+            $mm->message("Nameservers changed");
+            return $self->list($mm);
+        } else {
+            $mm->message("Your request could not be completed");
+        }
+    }
+    $mm->respond("plugins/domain_name/change_nameservers",
+        current => \@current,
+        domain  => $domain
+    );
 }
 
 sub revoke {
