@@ -115,7 +115,7 @@ sub _get_register_args {
             my @ns = map { $mm->param($_) } qw(primary_ns secondary_ns);
             my $ok = 1;
             for (@ns) {
-                if (!/^$RE{net}{IPv4}$/) { 
+                if (!/^$RE{net}{domain}{-nospace}$/) { 
                     $mm->message("Nameserver is not a valid IP address");
                     $ok = 0;
                 }
