@@ -1,0 +1,6 @@
+<h3> Revoke domain <code>[%domain.domain%]</code>? </h3>
+
+<p>Are you sure that you want to deregister this domain?</p>
+<form method="post">
+<input type="submit" name="confirm" value="Confirm">
+</form>

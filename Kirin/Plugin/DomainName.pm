@@ -240,6 +240,23 @@ sub change_nameservers {
     return $rv{response} if exists $rv{response};
 }
 
+sub revoke {
+    my ($self, $mm, $domainid) = @_;
+    my %rv = $self->_get_domain($mm, $domainid);
+    return $rv{response} if exists $rv{response};
+
+    my ($domain, $handle) = ($rv{object}, $rv{reghandle});
+    if (!$mm->param("confirm")) {
+        return $mm->respond("plugins/domain_name/revoke", domain => $domain);
+    }
+    if ($handle->revoke(domain => $domain->domain)) {
+        $domain->delete;
+        return $self->list($mm);
+    }
+    # Something went wrong
+    $mm->message("Your request could not be processed");
+    return $mm->respond("plugins/domain_name/revoke", domain => $domain);
+}
 sub _setup_db {
     shift->_ensure_table("domain_name");
     # XXX
