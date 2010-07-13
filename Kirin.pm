@@ -83,6 +83,12 @@ sub ensure_user {
     return; # OK
 }
 
+sub session {
+    my $self = shift;
+    $self->{req}->env->{"psgi.session"}  ||
+    $self->{req}->env->{"plack.session"};
+}
+
 sub authenticate {
     my $self = shift;
 
@@ -90,7 +96,7 @@ sub authenticate {
     my $path = $self->{req}->path; $path =~ s/^\/+//;
     my ($noun, $verb, @args) = split /\//,  $path;
     $noun =~ s/_(\w)/\U$1/g; my $class = $self->{model_prefix}."::".ucfirst($noun);
-    my $sess = $self->{req}->env->{"plack.session"};
+    my $sess = $self->session;
     if ($self->{req}->path eq "/logout") { $sess->set("user","") }
 
     if ($self->{req}->path eq "/forgot_password") {
@@ -150,8 +156,8 @@ sub try_to_login {
     my $real = Authen::Passphrase->from_crypt($user->password);
     if ($real->match($p)) {
         $self->message("Login successful");
-        $self->{req}->env->{"plack.session"}->set("user" => $user->id);
-        $self->{req}->env->{"plack.session"}->set("customer" => "");
+        $self->session->set("user" => $user->id);
+        $self->session->set("customer" => "");
         # This corrects a subtle bug if we've been logged in as someone else
         return 1;
     }
@@ -198,8 +204,8 @@ sub try_to_add_new_user {
         method => "setup",
         parameters => $user->id
     });
-    $self->{req}->env->{"plack.session"}->set("user" => $user->id);
-    $self->{req}->env->{"plack.session"}->set("customer" => "");
+    $self->session->set("user" => $user->id);
+    $self->session->set("customer" => "");
     return 1;
 }
 sub try_to_add_customer {
@@ -218,7 +224,7 @@ sub try_to_add_customer {
     $self->{user}->add_to_customers({ customer => $customer });
     $self->{user}->customer($customer);
     $self->{user}->update();
-    my $sess = $self->{req}->env->{"plack.session"};
+    my $sess = $self->session;
     $sess->set("customer", $customer->id);
     $self->{customer} = $customer;
     return 1;
