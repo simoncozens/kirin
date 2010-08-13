@@ -78,6 +78,7 @@ sub register {
             customer       => $mm->{customer},
             domain         => $domain,
             registrar      => $tld_handler->registrar,
+            tldhandler     => $tld_handler->id,
             billing        => encode_json($rv{billing}),
             admin          => encode_json($rv{admin}),
             technical      => encode_json($rv{technical}),
@@ -268,6 +269,30 @@ sub change_nameservers {
     );
 }
 
+sub renew {
+    my ($self, $mm, $domainid) = @_;
+    my %rv = $self->_get_domain($mm, $domainid);
+    return $rv{response} if exists $rv{response};
+    my ($domain, $handle) = ($rv{object}, $rv{reghandle});
+    if (!$mm->param("duration")) {
+        return $mm->respond("plugins/domain_name/renew", domain => $domain);
+    }
+    my $years = $mm->param("duration");
+    my $price = $domain->tld_handler->price * $years / $domain->tld_handler->duration;
+    if ($handle->renew(domain => $domain->domain, years => $years)) {
+        $mm->{customer}->bill_for({
+            description  => "Renewal of of domain ".$domain->domain." for $years years",
+            cost         => $price
+        });
+        $mm->message("Domain renewed");
+        $domain->expires($domain->expires + ONE_YEAR * $years);
+        return $self->list($mm);
+    }
+    # Something went wrong
+    $mm->message("Your request could not be processed");
+    return $mm->respond("plugins/domain_name/renew", domain => $domain);
+}
+
 sub revoke {
     my ($self, $mm, $domainid) = @_;
     my %rv = $self->_get_domain($mm, $domainid);
@@ -287,7 +312,7 @@ sub revoke {
 }
 sub _setup_db {
     shift->_ensure_table("domain_name");
-    # XXX
+    Kirin::DB::DomainName->has_a(tld_handler => "Kirin::DB::TldHandler");
     Kirin::DB::DomainName->has_a(expires => 'Time::Piece',
       inflate => sub { Time::Piece->strptime(shift, "%Y-%m-%d") },
       deflate => 'ymd',
@@ -305,6 +330,7 @@ CREATE TABLE IF NOT EXISTS domain_name ( id integer primary key not null,
     admin text,
     technical text,
     nameserverlist varchar(255),
+    tld_handler integer,
     expires datetime
 );
 
