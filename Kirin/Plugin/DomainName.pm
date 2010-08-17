@@ -319,6 +319,37 @@ sub _setup_db {
     );
 }
 
+sub admin {
+    my ($self, $mm) = @_;
+    if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
+    if ($mm->param("create")) {
+        if (!$mm->param("registrar")) {
+            $mm->message("Handler must have a registrar");
+        } elsif (!$mm->param("tld")) {
+            $mm->message("Handler must have a name");
+        } else {
+            my $handler = Kirin::DB::TldHandler->create({
+                map { $_ => $mm->param($_) }
+                    qw/tld registrar price duration/
+            });
+            $mm->message("Handler created") if $handler;
+        }
+    } elsif (my $id = $mm->param("edittld")) {
+        my $handler = Kirin::DB::TldHandler->retrieve($id);
+        if ($handler) {
+            for (qw/tld registrar price duration/) {
+                $handler->$_($mm->param($_));
+            }
+            $handler->update();
+        }
+    } elsif (my $id = $mm->param("deletetld")) {
+         my $thing = Kirin::DB::TldHandler->retrieve($id);
+         if ($thing) { $thing->delete; $mm->message("Handler deleted") }
+    }
+    my @tlds = Kirin::DB::TldHandler->retrieve_all();   
+    $mm->respond("plugins/domain_name/admin", tlds => \@tlds);
+}
+
 package Kirin::DB::DomainName;
 
 sub sql{q/

@@ -1,0 +1,28 @@
+<table>
+<tr><th>TLD</th><th>Registrar</th><th>Price</th><th>Duration</th></tr>
+[% FOR p = tlds %]
+<tr>
+    <form method="post">
+    <input type="hidden" value="[%p.id%]" name="edittld">
+    <td> <input name="tld" value="[%p.tld%]"> </td>
+    <td> <input name="registrar" value="[%p.registrar%]"> </td>
+    <td> <input name="price" value="[%p.price%]"> </td>
+    <td> <input name="duration" value="[%p.duration%]"> Years </td>
+    <td> <input type="submit" value="Edit"> </td>
+    </form>
+    <form method="post">
+    <input type="hidden" value="[%p.id%]" name="deletetld">
+    <td> 
+        <input type="submit" value="Delete"> </td>
+    </form>
+</tr>
+[% END %]
+
+<tr>
+    <form method="post">
+    <td> <input name="tld" > </td>
+    <td> <input name="registrar" > </td>
+    <td> <input name="price" > </td>
+    <td> <input name="duration" > Years </td>
+    <td> <input type="submit" name="create" value="Create"> </td>
+</tr>
