@@ -119,7 +119,23 @@ sub password_change {
 }
 
 sub regrade {
-    # XXX
+    my ($self, $mm) = @_;
+    my ($bb, $r); (($bb, $r) = $self->_has_bb($mm))[0] or return $r;
+    my $new_product = $mm->param("newproduct"); # XXX
+    my %out;
+    if ($new_product) { 
+        %out = eval {
+            $bb->provider_handle->regrade("service-id" => $bb->token,
+                                "prod-id" => $new_product);
+        };
+        if ($@) { 
+            $mm->message("An error occurred and your request could not be completed");
+        }
+    }
+    $mm->respond("plugins/broadband/regrade",
+        information => \%out,
+        service => $bb
+    );
 }
 
 sub cancel { 
