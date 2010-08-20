@@ -29,6 +29,7 @@ recommends  "Business::PayPal" => 0;
 recommends  "Regexp::Common::dns" => 0;
 recommends  "Net::eNom" => 0.3;
 recommends  "Net::KashFlow" => 0;
+recommends  "Date::Holidays::EnglandWales" => 0;
 
 auto_install;
 WriteAll;
