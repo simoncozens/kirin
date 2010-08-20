@@ -63,8 +63,10 @@ sub register {
     if (!$r->is_available($domain)) {
         $mm->message("That domain is not available; please choose another");
     }
+    else {
+        $args{available} = 1;
+    }
 
-    $args{available} = 1;
     if (!$mm->param("register")) { 
         return $mm->respond("plugins/domain_name/register", %args);
     }
