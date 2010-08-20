@@ -198,6 +198,7 @@ sub _setup_db {
 
     shift->_ensure_table("broadband");
     Kirin::DB::Broadband->has_a(customer => "Kirin::DB::Customer");
+    Kirin::DB::Broadband->has_a(service => "Kirin::DB::BroadbandService");
     Kirin::DB::Customer->might_have(broadband => "Kirin::DB::Broadband");
     Kirin::DB::BroadbandEvent->has_a(broadband => "Kirin::DB::Broadband");
     Kirin::DB::Broadband->has_many(events => "Kirin::DB::BroadbandEvent");
@@ -226,7 +227,7 @@ package Kirin::DB::Broadband;
 
 sub provider_handle {
     my $self = shift;
-    my $p = shift || $self->provider;
+    my $p = shift || $self->service->provider;
     my $module = "Net::DSLProvider::".ucfirst($p);
     $module->require or die "Can't find a provider module for $p:$@";
     $module->new({ 
@@ -269,7 +270,7 @@ CREATE TABLE IF NOT EXISTS broadband (
     id integer primary key not null,
     customer integer,
     telno varchar(12),
-    provider varchar(255),
+    service integer,
     token varchar(255),
     status varchar(255)
 );
@@ -290,6 +291,13 @@ CREATE TABLE IF NOT EXISTS broadband_usage (
     month integer,
     input integer,
     output integer    
+);
+
+CREATE TABLE IF NOT EXISTS broadband_service (
+    id integer primary key not null,
+    provider varchar(255),
+    name varchar(255),
+    price decimal(5,2)
 );
 /}
 1;
