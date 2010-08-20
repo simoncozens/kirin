@@ -78,7 +78,7 @@ sub register {
             customer       => $mm->{customer},
             domain         => $domain,
             registrar      => $tld_handler->registrar,
-            tldhandler     => $tld_handler->id,
+            tld_handler    => $tld_handler->id,
             billing        => encode_json($rv{billing}),
             admin          => encode_json($rv{admin}),
             technical      => encode_json($rv{technical}),
@@ -286,6 +286,7 @@ sub renew {
         });
         $mm->message("Domain renewed");
         $domain->expires($domain->expires + ONE_YEAR * $years);
+        $domain->update();
         return $self->list($mm);
     }
     # Something went wrong

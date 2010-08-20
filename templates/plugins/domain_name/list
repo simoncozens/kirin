@@ -8,7 +8,7 @@
         <td> Expires [% n.expires.ymd %] </td>
         <td> <a href="/domain_name/change_contacts/[%n.id%]">Change contacts</a></td>
         <td> <a href="/domain_name/change_nameservers/[%n.id%]">Change nameservers</a></td>
-        <td> <a href="/domain_name/revoke/[%n.id%]">Revoke registration</a></td>
+        <td> <a href="/domain_name/renew/[%n.id%]">Renew</a></td>
     </tr>
 [% END %]
 </table>

@@ -1,0 +1,10 @@
+<h3> Renew domain <code>[%domain.domain%]</code>? </h3>
+
+<p>How long would you like to renew this domain for? </p>
+<form method="post">
+<select name="duration">
+    <option value="1">One year</option>
+    <option value="2">Two years</option>
+</select>
+<input type="submit" name="confirm" value="Confirm">
+</form>
