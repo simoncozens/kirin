@@ -149,6 +149,7 @@ sub bill_for {
         $invoice->total > Kirin->args->{send_invoice_now_trigger}) {
         $invoice->dispatch;
     }
+    return $invoice;
 }
 
 sub find_user { Kirin::DB::User->search(customer => shift->id); }

@@ -13,7 +13,9 @@
 <p>Organisation name: [% field("OrgName", "org") %]</p>
 <p>Certificate type:
     <select name="ProductType">
-        <option value="Certificate-GeoTrust-QuickSSL">GeoTrust QuickSSL</option>
+        [% FOR p = products %]
+        <option value="[%p.name%]">[%p.name%] - &pound; [%p.price%]</option>
+        [% END %]
     </select>
 <p>Duration (years): <input name="NumYears" value="1">
 <p> X509 details (for advanced users only; otherwise, please leave blank): 

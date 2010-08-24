@@ -26,3 +26,4 @@
     <td> <input name="duration" > Years </td>
     <td> <input type="submit" name="create" value="Create"> </td>
 </tr>
+</table>

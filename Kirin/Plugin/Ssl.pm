@@ -11,22 +11,23 @@ use warnings;
 use Carp qw/croak/;
 use Socket qw/inet_ntoa/;
 use Sys::Hostname;
+use JSON;
 
 sub list {
     my ($self, $mm) = @_;
     my @certificates = $mm->{customer}->ssls;
+    my $orders = Kirin::DB::Orders->search(type => 'ssl');
     $mm->respond("plugins/ssl/list", certificates => \@certificates,
-        addable => $self->_can_add_more($mm->{customer}));
+        addable => 1 );
 }
 
 sub order {
     my ($self, $mm) = @_;
-    if (!$self->_can_add_more($mm->{customer})) {
-        $mm->no_more("SSL certificates");
-        return $self->list($mm);
-    }
 
-    if (!$mm->param("ordering")) { return $mm->respond("plugins/ssl/orderform"); }
+    if (!$mm->param("ordering")) {
+        my %args = ( products => [Kirin::DB::SslProducts->retrieve_all] );
+        return $mm->respond("plugins/ssl/orderform", %args); 
+    }
 
     # Load up request from the parameters, checking as we go
     my $ok      = 1;
@@ -40,7 +41,7 @@ sub order {
         ProductType /;
     my $sendthemback = sub {
         $mm->message(shift);
-        $mm->respond("plugins/ssl/orderform",
+        $mm->respond("plugins/ssl/orderform", products => [Kirin::DB::SslProducts->retrieve_all],
             oldparams => $mm->{req}->parameters);
     };
     my $domain = delete $params->{Domain} ||
@@ -64,6 +65,45 @@ sub order {
     my ($key, $csr) = _make_key_csr($x509);
     use Data::Dumper; warn Dumper($request);
     $request->{CSR} = $csr;
+
+    # XXX Raise an invoice for the order and get payment.
+
+    my $order = undef;
+    if ( ! $params->{order} || ! ( $order = Kirin::DB::Orders->retrieve($params->{order}) ) ) {
+        my @product = Kirin::DB::SslProducts->search( name => $params->{ProductType} );
+        return $sendthemback->("Invalid SSL Product") unless $product[0];
+        my $invoice = $mm->{customer}->bill_for( {
+            description     => "SSL Certificate for $domain",
+            cost            => $product[0]->price
+        } );
+
+        my $json = JSON->new->allow_blessed;
+        
+        $order = Kirin::DB::Orders->insert( {
+            customer    => $mm->{customer},
+            order_type  => 'ssl',
+            parameters  => $json->encode( {
+                customer     => $mm->{customer},
+                domain       => $domain,
+                csr          => $csr,
+                key_file     => $key,
+                request      => $request
+            }),
+            invoice     => $invoice->id,
+            status      => 'Invoiced'
+        });
+
+        $mm->{order} = $order->id;
+    }
+    else {
+        $order = Kirin::DB::Orders->retrieve($params->{order});
+    }
+
+    if ( $order->status eq 'Invoiced' ) {
+        my $invoice = Kirin::DB::Invoice->retrieve($order->invoice);
+        return $mm->respond("plugins/invoice/view", invoice => $invoice);
+    }
+
     my ($certid, $status) = eval { _purchase_ssl_cert($enom, $request) };
     if (!$certid) {
         $mm->message("Something went wrong during processing: $status");
@@ -71,7 +111,7 @@ sub order {
         return $mm->respond("plugins/ssl/orderform",
             oldparams => $mm->{req}->parameters);
     }
-    $self->list($mm);
+
     $mm->message("Order was successful");
     my $cert = Kirin::DB::SslCertificate->create({
         customer     => $mm->{customer},
@@ -80,6 +120,7 @@ sub order {
         csr          => $csr,
         key_file     => $key,
     });
+
     $cert->update_from_enom;
     $self->list($mm);
 }
@@ -228,6 +269,50 @@ sub _purchase_ssl_cert {
     return $thiscert->{CertID};
 }
 
+sub admin {
+    my ($self, $mm) = @_;
+    if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
+
+    my $id = undef;
+
+    if ($mm->param("create")) {
+        if ( ! $mm->param('name') ) {
+            $mm->message("You must specify the product name");
+        }
+        elsif ( ! $mm->param('supplier') ) {
+            $mm->message("You must specify the supplier");
+        }
+        elsif ( ! $mm->param('periods') ) {
+            $mm->message("You must specify the valid periods in months");
+        }
+        elsif ( ! $mm->param('price') ) {
+            $mm->message("You must specify the price");
+        }
+        else {
+            my $product = Kirin::DB::SslProducts->create({
+                map { $_ => $mm->param($_) } 
+                    qw/name supplier periods price/
+            });
+            $mm->message("SSL Product created") if $product;
+        }
+    }
+    elsif ( $id = $mm->param('editproduct') ) {
+        my $product = Kirin::DB::SslProducts->retrieve($id);
+        if ( $product ) {
+            for (qw/name supplier periods price/) {
+                $product->$_($mm->param($_));
+            }
+            $product->update();
+        }
+    }
+    elsif ( $id = $mm->param('deleteproduct') ) {
+        my $product = Kirin::DB::SslProducts->retrieve($id);
+        if ( $product ) { $product->delete; $mm->message("SSL Product deleted"); }
+    }
+    my @products = Kirin::DB::SslProducts->retrieve_all();
+    $mm->respond('plugins/ssl/admin', products => \@products);
+}
+
 package Kirin::DB::SslCertificate;
 
 sub update_from_enom {
@@ -253,6 +338,13 @@ CREATE TABLE IF NOT EXISTS ssl_certificate ( id integer primary key not null,
     key_file text,
     certificate text,
     cert_status varchar(255)
+);
+
+CREATE TABLE IF NOT EXISTS ssl_products (id integer primary key not null,
+    name varchar(255) not null,
+    price varchar(255) not null,
+    supplier integer not null,
+    periods varchar(255) not null
 );
 |}
 1;
