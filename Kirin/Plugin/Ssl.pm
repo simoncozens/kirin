@@ -16,9 +16,12 @@ use JSON;
 sub list {
     my ($self, $mm) = @_;
     my @certificates = $mm->{customer}->ssls;
-    my $orders = Kirin::DB::Orders->search(type => 'ssl');
+
+    my $orders = Kirin::DB::Orders->search(type => 'SSL Certificate',
+        customer => $mm->{customer});
+
     $mm->respond("plugins/ssl/list", certificates => \@certificates,
-        addable => 1 );
+        orders => \@orders, addable => 1 );
 }
 
 sub order {
@@ -81,7 +84,7 @@ sub order {
         
         $order = Kirin::DB::Orders->insert( {
             customer    => $mm->{customer},
-            order_type  => 'ssl',
+            order_type  => 'SSL Certificate',
             parameters  => $json->encode( {
                 customer     => $mm->{customer},
                 domain       => $domain,
@@ -93,6 +96,7 @@ sub order {
             status      => 'Invoiced'
         });
 
+        $order->set_status("New Order");
         $mm->{order} = $order->id;
     }
     else {
@@ -104,22 +108,60 @@ sub order {
         return $mm->respond("plugins/invoice/view", invoice => $invoice);
     }
 
-    my ($certid, $status) = eval { _purchase_ssl_cert($enom, $request) };
-    if (!$certid) {
-        $mm->message("Something went wrong during processing: $status");
-        if ($@) { $mm->message($@) }
-        return $mm->respond("plugins/ssl/orderform",
-            oldparams => $mm->{req}->parameters);
-    }
+    $self->view($mm, $order->id);
+}
+    
+sub view {
+    my ($self, $mm, $id) = @_;
 
-    $mm->message("Order was successful");
-    my $cert = Kirin::DB::SslCertificate->create({
-        customer     => $mm->{customer},
-        domain       => $domain,
-        enom_cert_id => $certid,
-        csr          => $csr,
-        key_file     => $key,
-    });
+    $self->list($mm) if ! $id;
+
+    my $order = Kirin::DB::Orders->retrieve($id);
+    $self->list($mm) if ! $order;
+
+    if ( $order->status eq 'Pending - with suppiler') {
+        my $json = JSON->new->allow_blessed;
+
+        my %order_details = $json->decode($order->parameters);
+        my $cert = Kirin::DB::SslCertificate->retrieve($order_details->{certid});
+
+        $cert->update_from_enom;
+
+        # XXX If certificate is available deliver it else show current status
+    }
+    elsif ( $order->status eq 'Completed' ) {
+        my $json = JSON->new->allow_blessed;
+        my %order_details = $json->decode($order->parameters);
+        my $cert = Kirin::DB::SslCertificate->retrieve($order_details->{certid});
+
+        # XXX deliver the cert
+    }
+    elsif ( $order->status eq 'Paid' ) {
+        # XXX Process the order and set $order->status and $order->parameters
+
+        my ($certid, $status) = eval { _purchase_ssl_cert($enom, $request) };
+        if (!$certid) {
+            $mm->message("Something went wrong during processing: $status");
+            if ($@) { $mm->message($@) }
+            return $mm->respond("plugins/ssl/orderform",
+                oldparams => $mm->{req}->parameters);
+        }
+        else { $order->set_status("Pending - with suppiler"); }
+
+        $mm->message("Order was successful");
+        my $cert = Kirin::DB::SslCertificate->create({
+            customer     => $mm->{customer},
+            domain       => $domain,
+            enom_cert_id => $certid,
+            csr          => $csr,
+            key_file     => $key,
+        });
+
+        my $json = JSON->new->allow_blessed;
+        $order->parameters = $json->encode( { certid => $cert->id } );
+        $order->set_status('Pending - with suppiler');
+        $order->update();
+    }
 
     $cert->update_from_enom;
     $self->list($mm);
