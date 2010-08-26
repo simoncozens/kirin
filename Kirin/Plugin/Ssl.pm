@@ -13,11 +13,13 @@ use Socket qw/inet_ntoa/;
 use Sys::Hostname;
 use JSON;
 
+my $json = JSON->new->allow_blessed;
+
 sub list {
     my ($self, $mm) = @_;
     my @certificates = $mm->{customer}->ssls;
 
-    my $orders = Kirin::DB::Orders->search(type => 'SSL Certificate',
+    my @orders = Kirin::DB::Orders->search(type => 'SSL Certificate',
         customer => $mm->{customer});
 
     $mm->respond("plugins/ssl/list", certificates => \@certificates,
@@ -85,6 +87,7 @@ sub order {
         $order = Kirin::DB::Orders->insert( {
             customer    => $mm->{customer},
             order_type  => 'SSL Certificate',
+            module       => __PACKAGE__,
             parameters  => $json->encode( {
                 customer     => $mm->{customer},
                 domain       => $domain,
@@ -93,10 +96,10 @@ sub order {
                 request      => $request
             }),
             invoice     => $invoice->id,
-            status      => 'Invoiced'
+            status      => 'New Order'
         });
 
-        $order->set_status("New Order");
+        $order->set_status("Invoiced");
         $mm->{order} = $order->id;
     }
     else {
@@ -119,52 +122,52 @@ sub view {
     my $order = Kirin::DB::Orders->retrieve($id);
     $self->list($mm) if ! $order;
 
+    my $order_details = $json->decode($order->parameters);
+    my $cert = Kirin::DB::SslCertificate->retrieve($order_details->{certid});
+
     if ( $order->status eq 'Pending - with suppiler') {
-        my $json = JSON->new->allow_blessed;
-
-        my %order_details = $json->decode($order->parameters);
-        my $cert = Kirin::DB::SslCertificate->retrieve($order_details->{certid});
-
         $cert->update_from_enom;
-
-        # XXX If certificate is available deliver it else show current status
-    }
-    elsif ( $order->status eq 'Completed' ) {
-        my $json = JSON->new->allow_blessed;
-        my %order_details = $json->decode($order->parameters);
-        my $cert = Kirin::DB::SslCertificate->retrieve($order_details->{certid});
-
-        # XXX deliver the cert
-    }
-    elsif ( $order->status eq 'Paid' ) {
-        # XXX Process the order and set $order->status and $order->parameters
-
-        my ($certid, $status) = eval { _purchase_ssl_cert($enom, $request) };
-        if (!$certid) {
-            $mm->message("Something went wrong during processing: $status");
-            if ($@) { $mm->message($@) }
-            return $mm->respond("plugins/ssl/orderform",
-                oldparams => $mm->{req}->parameters);
-        }
-        else { $order->set_status("Pending - with suppiler"); }
-
-        $mm->message("Order was successful");
-        my $cert = Kirin::DB::SslCertificate->create({
-            customer     => $mm->{customer},
-            domain       => $domain,
-            enom_cert_id => $certid,
-            csr          => $csr,
-            key_file     => $key,
-        });
-
-        my $json = JSON->new->allow_blessed;
-        $order->parameters = $json->encode( { certid => $cert->id } );
-        $order->set_status('Pending - with suppiler');
-        $order->update();
     }
 
-    $cert->update_from_enom;
-    $self->list($mm);
+    return $mm->respond("plugins/ssl/view", cert => $cert);
+}
+
+sub process {
+    my ($self, $id) = @_;
+    return if ! $id;
+
+    my $order = Kirin::DB::Orders->retrieve($id);
+    return if ! $order;
+
+    return if ! $order->invoice->paid;
+
+    my $op = $json->decode($order->parameters);
+
+    my ($certid, $status) = eval { _purchase_ssl_cert($enom, $op->{request}) };
+    if (!$certid) {
+        Kirin::Utils->email_boss(
+            severity    => "error",
+            customer    => $op->{customer},
+            context     => "Trying to purchase SSL Certificate " . $op->{certid},
+            message     => "$@"
+        );
+        return;
+    }
+
+    my $cert = Kirin::DB::SslCertificate->create({
+        customer     => $op->{customer},
+        domain       => $op->{domain},
+        enom_cert_id => $op->{certid},
+        csr          => $op->{csr},
+        key_file     => $op->{key},
+    });
+
+    $order->parameters = $json->encode( { certid => $cert->id } );
+    $order->update();
+
+    $order->set_status('Pending - with suppiler');
+
+    return 1;
 }
 
 sub download {

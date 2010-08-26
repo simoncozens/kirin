@@ -64,11 +64,10 @@ sub return {
     my ($pp) = Kirin::DB::Paypal->search(magic_frob => $frob);
     my $invoice = $pp->invoice;
     if ($pp->status eq "Completed" and $pp->invoice->paid) {
-        $mm->message("Paid with thanks!");
+        $mm->message("Paid with thanks!");    
         $pp->delete;
     } elsif ($pp->status eq "Pending") { 
         $mm->message("Your payment is awaiting clearance");
-        $pp->delete;
     } else { 
         $mm->message("Something went wrong with your payment; we will be in touch with you to help resolve this.");
     }

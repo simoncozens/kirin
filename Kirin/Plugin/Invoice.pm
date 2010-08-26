@@ -82,18 +82,18 @@ sub payment_form {
 sub mark_paid {
     my ($self) = @_;
 
-    my $order = Kirin::DB::Orders->search(invoice => $self->id);
-    while ( my $o = $order->next ) {
-        $o->status("Paid");
-        $o->update();
-    }
-
     $self->paid(1);
     $self->update();
+
     my $ap = Kirin->args->{accounting_plugin};
     if (!$ap) { ($ap) = grep { $_->can("_account_for_invoice") } Kirin->plugins }
-    if (!$ap) { return; } # No warning, since accounting isn't that common
-    $ap->_account_for_invoice($self);
+    $ap->_account_for_invoice($self) if $ap;
+
+    my $order = Kirin::DB::Orders->search(invoice => $self->id);
+    while ( my $o = $order->next ) {
+        $o->set_status("Paid");
+        $o->module->process($o->id);
+    }
 }
 
 sub cancel {
