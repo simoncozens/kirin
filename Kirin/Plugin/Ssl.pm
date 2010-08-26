@@ -19,7 +19,7 @@ sub list {
     my ($self, $mm) = @_;
     my @certificates = $mm->{customer}->ssls;
 
-    my @orders = Kirin::DB::Orders->search(type => 'SSL Certificate',
+    my @orders = Kirin::DB::Orders->search(order_type => 'SSL Certificate',
         customer => $mm->{customer});
 
     $mm->respond("plugins/ssl/list", certificates => \@certificates,
@@ -107,8 +107,7 @@ sub order {
     }
 
     if ( $order->status eq 'Invoiced' ) {
-        my $invoice = Kirin::DB::Invoice->retrieve($order->invoice);
-        return $mm->respond("plugins/invoice/view", invoice => $invoice);
+        return $mm->respond("plugins/invoice/view", invoice => $order->invoice);
     }
 
     $self->view($mm, $order->id);
@@ -162,8 +161,8 @@ sub process {
         key_file     => $op->{key},
     });
 
-    $order->parameters = $json->encode( { certid => $cert->id } );
-    $order->update();
+    $order->parameters($json->encode( { certid => $cert->id } ));
+    $order->update;
 
     $order->set_status('Pending - with suppiler');
 
