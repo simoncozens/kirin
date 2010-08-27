@@ -27,8 +27,16 @@ sub view {
     my $bb = Kirin::DB::Broadband->retrieve($id);
     if ( ! $bb ) {$self->list(); return;}
 
-    return $mm->respond("plugins/broadband/view",
-        service => $bb->_service_view() );
+    my %details = eval { 
+        $bb->provider_handle->service_view('service-id' => $self->token);
+    };
+
+    if ($@) {
+        $mm->message('We are currently unable to retrieve details for this service.');
+    }
+
+    my $service = { bb => $bb, details => \%details };
+    return $mm->respond("plugins/broadband/view", service => $service);
 }
 
 sub order {
