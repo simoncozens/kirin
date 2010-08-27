@@ -79,6 +79,42 @@ sub view {
     }
 }
 
+sub admin {
+    my ($self, $mm) = @_;
+    if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
+
+    my $id = undef;
+
+    if ($mm->param("create")) {
+        for (qw/name code provider price/) {
+            if ( ! $mm->param($_) ) {
+                $mm->message("You must specify the $_ parameter");
+            }
+            $mm->respond("plugins/broadband/admin");
+        }
+        my $new = Kirin::DB::BroadbandService->insert({
+            map { $_ => $mm->param($_) } qw/name code provider price/
+        });
+        $mm->message('Broadband Service Added');
+    }
+    elsif ($id = $mm->param("editproduct")) {
+        my $product = Kirin::DB::BroadbandService->retrieve($id);
+        if ( $product ) {
+            for (qw/name code provider price/) {
+                $product->$_($mm->param($_));
+            }
+            $product->update();
+        }
+        $mm->message('Broadband Service Updated');
+    }
+    elsif ($id = $mm->param('deleteproduct')) {
+        my $product = Kirin::DB::BroadbandService->retrieve($id);
+        if ( $product ) { $product->delete(); $mm->message('Broadband Service Deleted'); }
+    }
+    my @products = Kirin::DB::BroadbandService->retrieve_all();
+    $mm->respond("plugins/broadband/admin", products => \@products);
+}
+
 sub request_mac {
     my ($self, $mm) = @_;
     my ($bb, $r); (($bb, $r) = $self->_has_bb($mm))[0] or return $r;
@@ -310,6 +346,7 @@ CREATE TABLE IF NOT EXISTS broadband_usage (
 CREATE TABLE IF NOT EXISTS broadband_service (
     id integer primary key not null,
     provider varchar(255),
+    code varchar(255),
     name varchar(255),
     price decimal(5,2)
 );
