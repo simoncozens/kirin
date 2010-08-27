@@ -17,6 +17,20 @@ sub list {
     $mm->respond("plugins/broadband/list", bbs => \@bbs);
 }
 
+# XXX How do we ensure that any broadband service we retrieve belongs to
+#     the customer when we're using Kirin::DB::Broadband->retrieve($id) ?
+
+sub view {
+    my ($self, $mm, $id) = @_;
+    if ( ! $id ){$self->list(); return;}
+
+    my $bb = Kirin::DB::Broadband->retrieve($id);
+    if ( ! $bb ) {$self->list(); return;}
+
+    return $mm->respond("plugins/broadband/view",
+        service => $bb->_service_view() );
+}
+
 sub order {
     my ($self, $mm) = @_;
     my $clid = $mm->param("clid");
@@ -57,26 +71,6 @@ sub order {
             goto stage_2;
         }
         # make the order XXX
-}
-
-sub view {
-    my ($self, $mm) = @_;
-    # Do we have a service? If so, say something about it.
-    if (my $bb = $mm->{customer}->broadband) { 
-        # Get current bandwidth usage info - force update, and history 
-        # will be available to the template as broadband.usage_reports
-        # You may wish to rely on a cached one instead, but for the
-        # purposes...
-        $bb->get_bandwidth_for(undef,undef); #,1);
-        # Get any other status we care about
-        # XXX How do I find out how much bandwidth allowance we have?
-
-        return $mm->respond("plugins/broadband/currentstatus",
-            broadband => $bb,
-        );
-    } else {
-        return $mm->respond("plugins/broadband/get-clid");
-    }
 }
 
 sub admin {
@@ -313,6 +307,11 @@ sub get_bandwidth_for {
         });
     }
     return ($summary{"total-input-octets"}, $summary{"total-output-octets"});
+}
+
+sub _service_details {
+    my $self = shift;
+    return $self->provider_handle->service_view('service-id' => $self->token);
 }
 
 sub sql {q/
