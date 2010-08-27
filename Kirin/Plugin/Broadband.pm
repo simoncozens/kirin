@@ -25,7 +25,7 @@ sub view {
     if ( ! $id ){$self->list(); return;}
 
     my $bb = Kirin::DB::Broadband->retrieve($id);
-    if ( ! $bb ) {$self->list(); return;}
+    if (! $bb) { $self->list($mm); return; }
 
     my %details = eval { 
         $bb->provider_handle->service_view('service-id' => $self->token);
