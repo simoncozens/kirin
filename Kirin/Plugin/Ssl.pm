@@ -71,8 +71,6 @@ sub order {
     use Data::Dumper; warn Dumper($request);
     $request->{CSR} = $csr;
 
-    # XXX Raise an invoice for the order and get payment.
-
     my $order = undef;
     if ( ! $params->{order} || ! ( $order = Kirin::DB::Orders->retrieve($params->{order}) ) ) {
         my @product = Kirin::DB::SslProducts->search( name => $params->{ProductType} );
@@ -82,8 +80,6 @@ sub order {
             cost            => $product[0]->price
         } );
 
-        my $json = JSON->new->allow_blessed;
-        
         $order = Kirin::DB::Orders->insert( {
             customer    => $mm->{customer},
             order_type  => 'SSL Certificate',
@@ -96,8 +92,8 @@ sub order {
                 request      => $request
             }),
             invoice     => $invoice->id,
-            status      => 'New Order'
         });
+        $order->set_status("New Order");
 
         $order->set_status("Invoiced");
         $mm->{order} = $order->id;
@@ -112,7 +108,7 @@ sub order {
 
     $self->view($mm, $order->id);
 }
-    
+
 sub view {
     my ($self, $mm, $id) = @_;
 
@@ -133,12 +129,11 @@ sub view {
 
 sub process {
     my ($self, $id) = @_;
-    return if ! $id;
+    if ( ! $id ) { return; }
 
     my $order = Kirin::DB::Orders->retrieve($id);
-    return if ! $order;
-
-    return if ! $order->invoice->paid;
+    if ( ! $order ) { return; }
+    if ( ! $order->invoice->paid ) { return; }
 
     my $op = $json->decode($order->parameters);
 
@@ -188,6 +183,7 @@ sub download {
 }
 
 sub _setup_db {   # Piggyback on this method as it's called when ->args is ready
+    my $db = shift;
     Kirin->args->{$_}
         || die "You need to configure $_ in your Kirin configuration"
         for qw/enom_reseller_username enom_reseller_password/;
@@ -195,7 +191,8 @@ sub _setup_db {   # Piggyback on this method as it's called when ->args is ready
         username => Kirin->args->{enom_reseller_username},
         password => Kirin->args->{enom_reseller_password},
         test     => 1);                                      # XXX
-    shift->_ensure_table("ssl_certificate");
+    $db->_ensure_table("ssl_certificate");
+    $db->_ensure_table("ssl_products");
     Kirin::DB::SslCertificate->has_a(customer => "Kirin::DB::Customer");
     Kirin::DB::Customer->has_many(ssls => "Kirin::DB::SslCertificate");
 }

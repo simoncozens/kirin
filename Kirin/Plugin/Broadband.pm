@@ -6,9 +6,16 @@ use strict;
 use base 'Kirin::Plugin';
 use Net::DSLProvider;
 sub user_name      { "Broadband" }
-sub default_action { "view" }
+sub default_action { "list" }
 use constant MAC_RE => qr/[A-Z0-9]{12,14}\/[A-Z]{2}[0-9]{2}[A-Z]/;
 my $murphx;
+
+sub list {
+    my ($self, $mm) = @_;
+
+    my @bbs = Kirin::DB::Broadband->search(customer => $mm->{customer});
+    $mm->respond("plugins/broadband/list", bbs => \@bbs);
+}
 
 sub order {
     my ($self, $mm) = @_;
@@ -88,6 +95,13 @@ sub request_mac {
     if ($@) { 
         $mm->message("An error occurred and your request could not be completed");
     }
+    Kirin::DB::BroadbandEvent->create({
+        broadband   => $bb,
+        timestamp   => Time::Piece->new(),
+        class       => "mac",
+        token       => $out,
+        description => "Request for MAC"
+    });
     $mm->respond("plugins/broadband/mac-requested",
         mac_information => \%out # Template will sort out requested/got
     );
