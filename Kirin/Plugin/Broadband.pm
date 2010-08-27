@@ -213,7 +213,7 @@ sub _setup_db {
     shift->_ensure_table("broadband");
     Kirin::DB::Broadband->has_a(customer => "Kirin::DB::Customer");
     Kirin::DB::Broadband->has_a(service => "Kirin::DB::BroadbandService");
-    Kirin::DB::Customer->might_have(broadband => "Kirin::DB::Broadband");
+    Kirin::DB::Customer->has_many(broadband => "Kirin::DB::Broadband");
     Kirin::DB::BroadbandEvent->has_a(broadband => "Kirin::DB::Broadband");
     Kirin::DB::Broadband->has_many(events => "Kirin::DB::BroadbandEvent");
     Kirin::DB::BroadbandUsage->has_a(broadband => "Kirin::DB::Broadband");
