@@ -24,12 +24,12 @@ sub order {
     my $mac  = uc $mm->param("mac");
     my $stage = $mm->param("stage");
     goto "stage_$stage" if $stage;
-    
+
     stage_1:
         if (!$clid) { 
             return $mm->respond("plugins/broadband/get-clid");
         }
-        if (defined $mac and $mac !~ MAC_RE) {
+        if ($mac and $mac !~ MAC_RE) {
             $mm->message("That MAC was not well-formed; please check.");
             return $mm->respond("plugins/broadband/get-clid");
         } 
@@ -99,7 +99,6 @@ sub request_mac {
         broadband   => $bb,
         timestamp   => Time::Piece->new(),
         class       => "mac",
-        token       => $out,
         description => "Request for MAC"
     });
     $mm->respond("plugins/broadband/mac-requested",
@@ -248,6 +247,7 @@ sub provider_handle {
         user     => Kirin->args->{"${p}_username"},
         pass     => Kirin->args->{"${p}_password"},
         clientid => Kirin->args->{"${p}_clientid"},
+        debug       => 1,   # XXX
     });
 }
 
