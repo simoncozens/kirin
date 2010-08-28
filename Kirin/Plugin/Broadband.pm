@@ -85,7 +85,7 @@ sub request_mac {
 
     if ($bb->status !~ /^live/) { 
         $mm->message('You cannot request a MAC for a service that is not live'); 
-        return $self->view($mm);
+        return $self->view($mm, $id);
     }
 
     my %out = eval {
@@ -125,7 +125,7 @@ sub password_change {
     } else { 
         $mm->message('Password WAS NOT changed');
     }
-    return $self->view($mm);
+    return $self->view($mm, $id);
 
     fail: return $mm->respond('plugins/broadband/password_change');
 }
@@ -177,13 +177,80 @@ sub cancel {
     };
     if ($@) { 
         $mm->message("An error occurred and your request could not be completed: $@");
-        return $self->view($mm);
+        return $self->view($mm, $id);
     }
     $bb->status('live-ceasing');
     $bb->record_event('cease', 'Cease order placed');
 
     $mm->message('Cease request sent to DSL provider');
-    $self->view($mm);
+    $self->view($mm, $id);
+}
+
+sub interleaving {
+    my ($self, $mm, $id) = @_;
+    my $bb = $self->_get_service($mm, $id);
+    if ( ! $bb ) { $self->list($mm); return; }
+
+    # Not all providers enable interleaving changes
+    if ( ! $bb->provider_handle->can('interleaving') ) {
+        $mm->message('It is not possible to change interleaving on this service');
+        $self->view($mm, $id);
+    }
+
+    my $status = undef;
+    eval { $status = $bb->provider_handle->interleaving(
+        'service-id' => $bb->token, 
+        interleaving => $mm->params('interleaving')
+        );
+    };
+    if ($@) {
+        $mm->message('It has not been possible to change the interleaving option');
+        return $self->view($mm, $id);
+    }
+
+    $bb->record_event('modify', 'Change interleaving option');
+
+    $mm->message('Order placed to change interleaving');
+    $self->view($mm, $id);
+}
+
+sub sessions {
+    my ($self, $mm, $id) = @_;
+    my $bb = $self->_get_service($mm, $id);
+    if ( ! $bb ) { $self->list($mm); return; }
+
+    my @sessions = ();
+    eval { @sessions = $bb->provider_handle->session_log(
+        'service-id' => $bb->token,
+        rows => 5 );
+    };
+    if ($@) {
+        $mm->message('Cannot obtain session history information');
+        return $self->view($mm, $id);
+    }
+
+    $mm->respond('plugins/broadband/sessions', sessions => \@sessions);
+}
+
+sub usage {
+    my ($self, $mm, $id) = @_;
+    my $bb = $self->_get_service($mm, $id);
+    if ( ! $bb ) { $self->list($mm); return; }
+
+}
+
+sub usagehistory {
+    my ($self, $mm, $id) = @_;
+    my $bb = $self->_get_service($mm, $id);
+    if ( ! $bb ) { $self->list($mm); return; }
+
+}
+
+sub events {
+    my ($self, $mm, $id) = @_;
+    my $bb = $self->_get_service($mm, $id);
+    if ( ! $bb ) { $self->list($mm); return; }
+
 }
 
 sub _get_service {
