@@ -21,7 +21,7 @@ sub view {
     my ($self, $mm, $id) = @_;
     if ( ! $id ){$self->list(); return;}
 
-    my $bb = $self->_get_service($id);
+    my $bb = $self->_get_service($mm, $id);
     if (! $bb) { $self->list($mm); return; }
 
     my %details = eval { 
@@ -33,7 +33,7 @@ sub view {
     }
 
     my $service = { bb => $bb, details => \%details };
-    return $mm->respond("plugins/broadband/view", service => $service);
+    return $mm->respond('plugins/broadband/view', service => $service);
 }
 
 sub order {
@@ -46,11 +46,11 @@ sub order {
 
     stage_1:
         if (!$clid) { 
-            return $mm->respond("plugins/broadband/get-clid");
+            return $mm->respond('plugins/broadband/get-clid');
         }
         if ($mac and $mac !~ MAC_RE) {
-            $mm->message("That MAC was not well-formed; please check.");
-            return $mm->respond("plugins/broadband/get-clid");
+            $mm->message('That MAC was not well-formed; please check.');
+            return $mm->respond('plugins/broadband/get-clid');
         } 
 
         # XXX
@@ -59,20 +59,20 @@ sub order {
             defined $mac ? (mac => $mac) : ()
         );
         # Present list of available services, activation date.
-        return $mm->respond("plugins/broadband/signup",
+        return $mm->respond('plugins/broadband/signup',
             services => \%avail);
 
     stage_2:
         # Decode service XXX
         my $provider = "Murphx"; # XXX;
         my $handle = Kirin::DB::Broadband->provider_handle($provider);
-        return $mm->respond("plugins/broadband/terms-and-conditions",
+        return $mm->respond('plugins/broadband/terms-and-conditions',
             tandc => $handle->terms_and_conditions()
         );
 
     stage_3:
-        if (!$mm->param("tc_accepted")) { # Back you go!
-            $mm->param("Please accept the terms and conditions to complete your order"); 
+        if (!$mm->param('tc_accepted')) { # Back you go!
+            $mm->param('Please accept the terms and conditions to complete your order'); 
             goto stage_2;
         }
         # make the order XXX
@@ -80,115 +80,115 @@ sub order {
 
 sub request_mac {
     my ($self, $mm, $id) = @_;
-    my $bb = $self->_get_service($id);
+    my $bb = $self->_get_service($mm, $id);
     if ( ! $bb ) { $self->list($mm); return; }
 
     if ($bb->status !~ /^live/) { 
-        $mm->message("You cannot request a MAC for a service that is not live"); 
+        $mm->message('You cannot request a MAC for a service that is not live'); 
         return $self->view($mm);
     }
 
     my %out = eval {
-        $bb->provider_handle->request_mac("service-id" => $bb->token,
-            reason => "EU wishes to change ISP");
+        $bb->provider_handle->request_mac('service-id' => $bb->token,
+            reason => 'EU wishes to change ISP');
     };
 
     if ($@) { 
-        $mm->message("An error occurred and your request could not be completed");
+        $mm->message('An error occurred and your request could not be completed');
     }
     $bb->record_event('mac', 'MAC Requested');
 
-    $mm->respond("plugins/broadband/mac-requested",
+    $mm->respond('plugins/broadband/mac-requested',
         mac_information => \%out # Template will sort out requested/got
     );
 }
 
 sub password_change {
-    my ($self, $mm) = @_;
-    my $bb = $self->_get_service($id);
+    my ($self, $mm, $id) = @_;
+    my $bb = $self->_get_service($mm, $id);
     if ( ! $bb ) { $self->list($mm); return; }
     
-    my $pass = $mm->param("password1");
+    my $pass = $mm->param('password1');
     if (!$pass) {
-        $mm->message("Please enter your new password"); goto fail;
+        $mm->message('Please enter your new password'); goto fail;
     }
-    if ($pass ne $mm->param("password2")) {
-        $mm->message("Passwords don't match"); goto fail;
+    if ($pass ne $mm->param('password2')) {
+        $mm->message('Passwords do not match'); goto fail;
     }
     if (!$self->_validate_password($mm, $pass)) { goto fail; }
 
-    my $ok = $bb->provider_handle->change_password("service-id" => $bb->token,
+    my $ok = $bb->provider_handle->change_password('service-id' => $bb->token,
         password => $pass);
     if ($ok) { 
         $bb->record_event('password', 'Password Changed');
-        $mm->message("Password successfully changed: please remember to update your router settings!");
+        $mm->message('Password successfully changed: please remember to update your router settings!');
     } else { 
-        $mm->message("Password WAS NOT changed");
+        $mm->message('Password WAS NOT changed');
     }
     return $self->view($mm);
 
-    fail: return $mm->respond("plugins/broadband/password_change");
+    fail: return $mm->respond('plugins/broadband/password_change');
 }
 
 sub regrade {
-    my ($self, $mm) = @_;
-    my $bb = $self->_get_service($id);
+    my ($self, $mm, $id) = @_;
+    my $bb = $self->_get_service($mm, $id);
     if ( ! $bb ) { $self->list($mm); return; }
 
-    my $new_product = $mm->param("newproduct"); # XXX
+    my $new_product = $mm->param('newproduct'); # XXX
     my %out;
     if ($new_product) { 
         %out = eval {
-            $bb->provider_handle->regrade("service-id" => $bb->token,
-                                "prod-id" => $new_product);
+            $bb->provider_handle->regrade('service-id' => $bb->token,
+                                'prod-id' => $new_product);
         };
         if ($@) { 
-            $mm->message("An error occurred and your request could not be completed");
+            $mm->message('An error occurred and your request could not be completed');
         }
         $bb->record_event('regrade', "Order to regrade to $new_product");
     }
-    $mm->respond("plugins/broadband/regrade",
+    $mm->respond('plugins/broadband/regrade',
         information => \%out,
         service => $bb
     );
 }
 
 sub cancel { 
-    my ($self, $mm) = @_;
-    my $bb = $self->_get_service($id);
+    my ($self, $mm, $id) = @_;
+    my $bb = $self->_get_service($mm, $id);
     if ( ! $bb ) { $self->list($mm); return; }
 
-    if (!$mm->param("date")) {
-        $mm->message("Please choose a date for cancellation");
-        return $mm->respond("plugins/broadband/cancel", 
+    if (!$mm->param('date')) {
+        $mm->message('Please choose a date for cancellation');
+        return $mm->respond('plugins/broadband/cancel', 
             dates => $self->_dates
         )
     }
 
-    if ( ! $mm->param("confirm") ) {
-    return $mm->respond("plugins/broadband/confirm-cancel");
+    if ( ! $mm->param('confirm') ) {
+    return $mm->respond('plugins/broadband/confirm-cancel');
     }
     
     my $out = eval {
-        $bb->provider_handle->cease("service-id" => $bb->token,
-            reason => "This service is no longer required",
-            crd    => $mm->param("date")
+        $bb->provider_handle->cease('service-id' => $bb->token,
+            reason => 'This service is no longer required',
+            crd    => $mm->param('date')
         ); 
     };
     if ($@) { 
         $mm->message("An error occurred and your request could not be completed: $@");
         return $self->view($mm);
     }
-    $bb->status("live-ceasing");
+    $bb->status('live-ceasing');
     $bb->record_event('cease', 'Cease order placed');
 
-    $mm->message("Cease request sent to DSL provider");
+    $mm->message('Cease request sent to DSL provider');
     $self->view($mm);
 }
 
 sub _get_service {
     # Make sure the customer owns the service
-    my ( $self, $id ) = @_;
+    my ( $self, $mm, $id ) = @_;
 
     my $bb = Kirin::DB::Broadband->retrieve($id);
     if ( ! $bb ) { return; }
@@ -201,23 +201,23 @@ sub _get_service {
 
 sub admin {
     my ($self, $mm) = @_;
-    if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
+    if (!$mm->{user}->is_root) { return $mm->respond('403handler') }
 
     my $id = undef;
 
-    if ($mm->param("create")) {
+    if ($mm->param('create')) {
         for (qw/name code provider price/) {
             if ( ! $mm->param($_) ) {
                 $mm->message("You must specify the $_ parameter");
             }
-            $mm->respond("plugins/broadband/admin");
+            $mm->respond('plugins/broadband/admin');
         }
         my $new = Kirin::DB::BroadbandService->insert({
             map { $_ => $mm->param($_) } qw/name code provider price/
         });
         $mm->message('Broadband Service Added');
     }
-    elsif ($id = $mm->param("editproduct")) {
+    elsif ($id = $mm->param('editproduct')) {
         my $product = Kirin::DB::BroadbandService->retrieve($id);
         if ( $product ) {
             for (qw/name code provider price/) {
@@ -232,7 +232,7 @@ sub admin {
         if ( $product ) { $product->delete(); $mm->message('Broadband Service Deleted'); }
     }
     my @products = Kirin::DB::BroadbandService->retrieve_all();
-    $mm->respond("plugins/broadband/admin", products => \@products);
+    $mm->respond('plugins/broadband/admin', products => \@products);
 }
 
 sub _setup_db {
@@ -246,7 +246,7 @@ sub _setup_db {
         clientid => Kirin->args->{murphx_clientid}
     });
 
-    shift->_ensure_table("broadband");
+    shift->_ensure_table('broadband');
     Kirin::DB::Broadband->has_a(customer => "Kirin::DB::Customer");
     Kirin::DB::Broadband->has_a(service => "Kirin::DB::BroadbandService");
     Kirin::DB::Customer->has_many(broadband => "Kirin::DB::Broadband");
@@ -339,7 +339,7 @@ sub record_event {
     if ( ! $event ) {
         Kirin::Utils->email_boss(
             severity    => 'error',
-            customer    => $bb->customer->id,
+            customer    => $self->customer,
             context     => 'event',
             message     => "Unable to record $class event - $desc",
         );
