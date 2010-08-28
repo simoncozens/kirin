@@ -251,6 +251,8 @@ sub events {
     my $bb = $self->_get_service($mm, $id);
     if ( ! $bb ) { $self->list($mm); return; }
 
+    my @events = Kirin::DB::BroadbandEvent->search(broadband => $id);
+    $mm->respond('plugins/broadband/events', events => \@events);    
 }
 
 sub _get_service {
