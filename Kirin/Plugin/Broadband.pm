@@ -17,14 +17,11 @@ sub list {
     $mm->respond("plugins/broadband/list", bbs => \@bbs);
 }
 
-# XXX How do we ensure that any broadband service we retrieve belongs to
-#     the customer when we're using Kirin::DB::Broadband->retrieve($id) ?
-
 sub view {
     my ($self, $mm, $id) = @_;
     if ( ! $id ){$self->list(); return;}
 
-    my $bb = Kirin::DB::Broadband->retrieve($id);
+    my $bb = $self->_get_service($id);
     if (! $bb) { $self->list($mm); return; }
 
     my %details = eval { 
@@ -81,6 +78,127 @@ sub order {
         # make the order XXX
 }
 
+sub request_mac {
+    my ($self, $mm, $id) = @_;
+    my $bb = $self->_get_service($id);
+    if ( ! $bb ) { $self->list($mm); return; }
+
+    if ($bb->status !~ /^live/) { 
+        $mm->message("You cannot request a MAC for a service that is not live"); 
+        return $self->view($mm);
+    }
+
+    my %out = eval {
+        $bb->provider_handle->request_mac("service-id" => $bb->token,
+            reason => "EU wishes to change ISP");
+    };
+
+    if ($@) { 
+        $mm->message("An error occurred and your request could not be completed");
+    }
+    $bb->record_event('mac', 'MAC Requested');
+
+    $mm->respond("plugins/broadband/mac-requested",
+        mac_information => \%out # Template will sort out requested/got
+    );
+}
+
+sub password_change {
+    my ($self, $mm) = @_;
+    my $bb = $self->_get_service($id);
+    if ( ! $bb ) { $self->list($mm); return; }
+    
+    my $pass = $mm->param("password1");
+    if (!$pass) {
+        $mm->message("Please enter your new password"); goto fail;
+    }
+    if ($pass ne $mm->param("password2")) {
+        $mm->message("Passwords don't match"); goto fail;
+    }
+    if (!$self->_validate_password($mm, $pass)) { goto fail; }
+
+    my $ok = $bb->provider_handle->change_password("service-id" => $bb->token,
+        password => $pass);
+    if ($ok) { 
+        $bb->record_event('password', 'Password Changed');
+        $mm->message("Password successfully changed: please remember to update your router settings!");
+    } else { 
+        $mm->message("Password WAS NOT changed");
+    }
+    return $self->view($mm);
+
+    fail: return $mm->respond("plugins/broadband/password_change");
+}
+
+sub regrade {
+    my ($self, $mm) = @_;
+    my $bb = $self->_get_service($id);
+    if ( ! $bb ) { $self->list($mm); return; }
+
+    my $new_product = $mm->param("newproduct"); # XXX
+    my %out;
+    if ($new_product) { 
+        %out = eval {
+            $bb->provider_handle->regrade("service-id" => $bb->token,
+                                "prod-id" => $new_product);
+        };
+        if ($@) { 
+            $mm->message("An error occurred and your request could not be completed");
+        }
+        $bb->record_event('regrade', "Order to regrade to $new_product");
+    }
+    $mm->respond("plugins/broadband/regrade",
+        information => \%out,
+        service => $bb
+    );
+}
+
+sub cancel { 
+    my ($self, $mm) = @_;
+    my $bb = $self->_get_service($id);
+    if ( ! $bb ) { $self->list($mm); return; }
+
+    if (!$mm->param("date")) {
+        $mm->message("Please choose a date for cancellation");
+        return $mm->respond("plugins/broadband/cancel", 
+            dates => $self->_dates
+        )
+    }
+
+    if ( ! $mm->param("confirm") ) {
+    return $mm->respond("plugins/broadband/confirm-cancel");
+    }
+    
+    my $out = eval {
+        $bb->provider_handle->cease("service-id" => $bb->token,
+            reason => "This service is no longer required",
+            crd    => $mm->param("date")
+        ); 
+    };
+    if ($@) { 
+        $mm->message("An error occurred and your request could not be completed: $@");
+        return $self->view($mm);
+    }
+    $bb->status("live-ceasing");
+    $bb->record_event('cease', 'Cease order placed');
+
+    $mm->message("Cease request sent to DSL provider");
+    $self->view($mm);
+}
+
+sub _get_service {
+    # Make sure the customer owns the service
+    my ( $self, $id ) = @_;
+
+    my $bb = Kirin::DB::Broadband->retrieve($id);
+    if ( ! $bb ) { return; }
+    
+    if ( $mm->{user}->is_root || $bb->customer eq $mm->{customer} ) {
+        return $bb;
+    }
+    return;
+}
+
 sub admin {
     my ($self, $mm) = @_;
     if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
@@ -115,125 +233,6 @@ sub admin {
     }
     my @products = Kirin::DB::BroadbandService->retrieve_all();
     $mm->respond("plugins/broadband/admin", products => \@products);
-}
-
-sub request_mac {
-    my ($self, $mm) = @_;
-    my ($bb, $r); (($bb, $r) = $self->_has_bb($mm))[0] or return $r;
-    if ($bb->status !~ /^live/) { 
-        $mm->message("You request a MAC for a service that is not live"); 
-        return $self->view($mm);
-    }
-
-    my %out = eval {
-        $bb->provider_handle->request_mac("service-id" => $bb->token,
-            reason => "EU wishes to change ISP");
-    };
-
-    if ($@) { 
-        $mm->message("An error occurred and your request could not be completed");
-    }
-    Kirin::DB::BroadbandEvent->create({
-        broadband   => $bb,
-        timestamp   => Time::Piece->new(),
-        class       => "mac",
-        description => "Request for MAC"
-    });
-    $mm->respond("plugins/broadband/mac-requested",
-        mac_information => \%out # Template will sort out requested/got
-    );
-}
-
-sub password_change {
-    my ($self, $mm) = @_;
-    my ($bb, $r); (($bb, $r) = $self->_has_bb($mm))[0] or return $r;
-    
-    my $pass = $mm->param("password1");
-    if (!$pass) {
-        $mm->message("Please enter your new password"); goto fail;
-    }
-    if ($pass ne $mm->param("password2")) {
-        $mm->message("Passwords don't match"); goto fail;
-    }
-    if (!$self->_validate_password($mm, $pass)) { goto fail; }
-
-    my $ok = $bb->provider_handle->change_password("service-id" => $bb->token,
-        password => $pass);
-    if ($ok) { 
-        $mm->message("Password successfully changed: please remember to update your router settings!");
-    } else { 
-        $mm->message("Password WAS NOT changed");
-    }
-    return $self->view($mm);
-
-    fail: return $mm->respond("plugins/broadband/password_change");
-}
-
-sub regrade {
-    my ($self, $mm) = @_;
-    my ($bb, $r); (($bb, $r) = $self->_has_bb($mm))[0] or return $r;
-    my $new_product = $mm->param("newproduct"); # XXX
-    my %out;
-    if ($new_product) { 
-        %out = eval {
-            $bb->provider_handle->regrade("service-id" => $bb->token,
-                                "prod-id" => $new_product);
-        };
-        if ($@) { 
-            $mm->message("An error occurred and your request could not be completed");
-        }
-    }
-    $mm->respond("plugins/broadband/regrade",
-        information => \%out,
-        service => $bb
-    );
-}
-
-sub cancel { 
-    my ($self, $mm) = @_;
-    my ($bb, $r); (($bb, $r) = $self->_has_bb($mm))[0] or return $r;
-
-    if (!$mm->param("date")) {
-        $mm->message("Please choose a date for cancellation");
-        return $mm->respond("plugins/broadband/cancel", 
-            dates => $self->_dates
-        )
-    }
-
-    return $mm->respond("plugins/broadband/confirm-cancel")
-        if !$mm->param("confirm");
-    
-    my $out = eval {
-        $bb->provider_handle->cease("service-id" => $bb->token,
-            reason => "This service is no longer required",
-            crd    => $mm->param("date")
-        ); 
-    };
-    if ($@) { 
-        $mm->message("An error occurred and your request could not be completed: $@");
-        return $self->view($mm);
-    }
-    $bb->status("live-ceasing");
-
-    Kirin::DB::BroadbandEvent->create({
-        broadband   => $bb,
-        timestamp   => Time::Piece->new(),
-        class       => "cease",
-        token       => $out,
-        description => "Request to cease DSL provision"
-    });
-    $mm->message("Cease request sent to DSL provider");
-    $self->view($mm);
-}
-
-sub _has_bb {
-    my ($self, $mm) = @_;
-    my $bb = $mm->{customer}->broadband;
-    if (!$bb) { 
-        $mm->message("You don't have any broadband services!");
-        return (undef, $self->view($mm));
-    }
-    return $bb;
 }
 
 sub _setup_db {
@@ -319,7 +318,35 @@ sub get_bandwidth_for {
 
 sub _service_details {
     my $self = shift;
-    return $self->provider_handle->service_view('service-id' => $self->token);
+    my %details = eval {
+        $self->provider_handle->service_view('service-id' => $self->token);
+    };
+    return %details;
+}
+
+sub record_event {
+    my ($self, $class, $desc ) = @_;
+    if ( ! $class || ! $desc ) { return; }
+
+    my $event = Kirin::DB::BroadbandEvent->create({
+            broadband   => $self->id,
+            timestamp   => Time::Piece->new(),
+            class       => $class,
+            token       => $self->token,
+            description => $desc,
+        });
+
+    if ( ! $event ) {
+        Kirin::Utils->email_boss(
+            severity    => 'error',
+            customer    => $bb->customer->id,
+            context     => 'event',
+            message     => "Unable to record $class event - $desc",
+        );
+        
+        return;
+    }
+    return 1;
 }
 
 sub sql {q/
