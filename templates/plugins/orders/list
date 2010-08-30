@@ -1,0 +1,21 @@
+<h2> Your Orders </h2>
+
+<table>
+<tr><th>ID</th><th>Order Type</th><th>Status</th><th>Invoice</th></tr>
+[% FOR o = orders %]
+<tr>
+<td>[%o.id%]</td>
+<td>[%o.order_type%]</td>
+<td>[%o.status%]</td>
+<td><a href="/invoice/view/[%o.invoice%]">[%o.invoice%]</a></td>
+<td> <a href="/orders/view/[%o.id%]">Click here to view</a></td>
+[% IF self.user.is_root %]
+<td>
+<form method="post"><input type="hidden" name="id" value="[%o.id%]"><input type="submit" value="Cancel">
+</form>
+</td>
+[% END %]
+</tr>
+[% END %]
+</table>
+

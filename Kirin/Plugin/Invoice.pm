@@ -92,7 +92,8 @@ sub mark_paid {
     my $order = Kirin::DB::Orders->search(invoice => $self->id);
     while ( my $o = $order->next ) {
         $o->set_status("Paid");
-        $o->module->process($o->id);
+        my $module = $o->module;
+        Kirin::Plugin::$module->process($o->id);
     }
 }
 

@@ -1,0 +1,9 @@
+<h2> Broadband Service </h2>
+
+[% IF service.size > 0 %]
+<h3>Service details here</h3>
+[% ELSE %]
+<h3>NOT A SERVICE</h3>
+[% END %]
+
+

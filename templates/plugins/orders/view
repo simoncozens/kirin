@@ -1,0 +1,20 @@
+<h2> Order number [% invoice.id %] </h2>
+
+<table>
+<tr><th>Order Type</th><td> [% order.order_type %]</td></tr>
+<tr><th>Invoice</th><td> <a href="/invoice/view/[% order.invoice %]">[% order.invoice %] Click to view</a></td></tr>
+<tr><th>Status</th><td> [% order.status %] </td></tr>
+</table>
+
+<h3>Order Updates</h3>
+
+<table>
+<tr><th>Date</th><th>Update</th></tr>
+[% FOR i = order.orderupdates %]
+<tr>
+<td>[%i.datetime%]</td>
+<td>[%i.order_update%]</td>
+</tr>
+[% END %]
+</table>
+

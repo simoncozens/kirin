@@ -1,0 +1,30 @@
+<h2>Broadband Products</h2>
+<table>
+<tr><th>Name</th><th>Provide Name</th><th>Provider</th><th>Price</th></tr>
+[% FOR p = products %]
+<tr>
+    <form method="post">
+    <input type="hidden" value="[%p.id%]" name="editproduct">
+    <td> <input name="name" value="[%p.name%]"> </td>
+    <td> <input name="code" value="[%p.code%]"> </td>
+    <td> <input name="provider" value="[%p.provider%]"> </td>
+    <td> <input name="price" value="[%p.price%]"> </td>
+    <td> <input type="submit" value="Edit"> </td>
+    </form>
+    <form method="post">
+    <input type="hidden" value="[%p.id%]" name="deleteproduct">
+    <td> 
+        <input type="submit" value="Delete"> </td>
+    </form>
+</tr>
+[% END %]
+
+<tr>
+    <form method="post">
+    <td> <input name="name" > </td>
+    <td> <input name="code" > </td>
+    <td> <input name="provider" > </td>
+    <td> <input name="price" > </td>
+    <td> <input type="submit" name="create" value="Create"> </td>
+</tr>
+</table>

@@ -1,0 +1,23 @@
+<h2> Your Broadband Services </h2>
+
+[% IF bbs.size > 0 %]
+<table>
+<tr><th>Telephone Line</th><th>Service</th><th>Network</th><th>Status</th><th></th></tr>
+[% FOR b = bbs %]
+<tr>
+<td>[%b.telno%]</td>
+<td>[%b.service.name%]</td>
+<td>[%b.service.provider%]</td>
+<td>[%b.status%]</td>
+<td>
+<form action="/broadband/view/[%b.id%]" method="post"><input type="submit" value="View Details"></form>
+</td>
+</tr>
+[% END %]
+[% ELSE %]
+<h3>No Broadband Services</h3>
+<p>You don't seem to have any broadband services. Perhaps you'd like to <a
+href="/broadband/order"> order one</a>.</p>
+
+[% END %]
+
