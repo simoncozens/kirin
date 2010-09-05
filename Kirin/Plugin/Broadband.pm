@@ -256,7 +256,6 @@ sub events {
 }
 
 sub _get_service {
-    # Make sure the customer owns the service
     my ( $self, $mm, $id ) = @_;
 
     my $bb = Kirin::DB::Broadband->retrieve($id);

@@ -102,6 +102,16 @@ sub set_status {
     $self->update;
 }
 
+sub process {
+    my $self = shift;
+
+    my $module = "Kirin::Plugin::".$self->module;
+    $module->require || die "Unable to require module $module";
+    $module->process($self->id) || die "unable to process order ".$self->id;
+    $self->set_status("Processing");
+    return 1;
+}
+
 sub completed {
     my $self = shift;
     $self->set_status("Completed");
