@@ -74,24 +74,169 @@ sub register {
     # Get contact addresses, nameservers and register
     %rv = $self->_get_register_args($mm, 0, $tld_handler, %args);
     return $rv{response} if exists $rv{response};
-    if ($r->register(domain => $domain, %rv)) {
-        $mm->message("Domain registered!");
-        Kirin::DB::DomainName->create({
-            customer       => $mm->{customer},
-            domain         => $domain,
-            registrar      => $tld_handler->registrar,
-            tld_handler    => $tld_handler->id,
-            billing        => encode_json($rv{billing}),
-            admin          => encode_json($rv{admin}),
-            technical      => encode_json($rv{technical}),
-            nameserverlist => encode_json($rv{nameservers}),
-            expires        => Time::Piece->new + $tld_handler->duration * ONE_YEAR 
-        });
-        $mm->{customer}->bill_for({
+
+    my $years = $mm->param("duration") =~ /\d+/ ? $mm->param("duration") : 1;
+
+    my $order = undef;
+    if ( ! $params->{order} || ! ( $order = Kirin::DB::Orders->retrieve($params->{order}) ) ) {
+        my $price = $tld_handler->price * $years / $domain->tld_handler->duration;
+        my $invoice = $mm->{customer}->bill_for({
             description  => "Registration of domain $domain",
-            cost         => $tld_handler->price
+            cost         => $price
         });
-        return $self->list($mm);
+        $order = Kirin::DB::Orders->insert( {
+            customer    => $mm->{customer},
+            order_type  => 'Domain Registration',
+            module      => __PACKAGE__,
+            parameters  => $json->encode( {
+                domain         => $domain,
+                tld            => $tld,
+                billing        => $rv{billing},
+                admin          => $rv{admin},
+                technical      => $rv{technical},
+                nameserverlist => $rv{nameservers},
+                years          => $years
+            }),
+            invoice     => $invoice->id,
+        });
+        if ( ! $order ) {
+            Kirin::Utils->email_boss(
+                severity    => "error",
+                customer    => $mm->{customer},
+                context     => "Trying to create order for domain registration",
+                message     => "Cannot create order entry for registration of $domain for $years years"
+            );
+            $mm->message("Our systems are unable to record your order");
+            return $mm->respond("plugins/domain_name/register", %args);
+        }
+        $order->set_status("New Order");
+        $order->set_status("Invoiced");
+        $mm->{order} = $order->id;
+    }
+
+    if ( $order->status eq 'Invoiced' ) {
+        return $mm->respond("plugins/invoice/view", invoice => $order->invoice);
+    }
+                
+    $self->view($mm, $order->id);
+}
+
+sub renew {
+    my ($self, $mm, $domainid) = @_;
+    my %rv = $self->_get_domain($mm, $domainid);
+    return $rv{response} if exists $rv{response};
+    my ($domain, $handle) = ($rv{object}, $rv{reghandle});
+    if (!$mm->param("duration")) {
+        return $mm->respond("plugins/domain_name/renew", domain => $domain);
+    }
+    my $years = $mm->param("duration");
+    my $price = $domain->tld_handler->price * $years / $domain->tld_handler->duration;
+
+    my $order = undef;
+    if ( ! $params->{order} || ! ( $order = Kirin::DB::Orders->retrieve($params->{order}) ) ) {
+        my $invoice = $mm->{customer}->bill_for({
+            description  => "Renewal of of domain ".$domain->domain." for $years years",
+            cost         => $price
+        });
+
+        $order = Kirin::DB::Orders->insert( {
+            customer    => $mm->{customer},
+            order_type  => 'Domain Renewal',
+            module      => __PACKAGE__,
+            parameters  => $json->encode( {
+                domain         => $domain,
+                years          => $years
+            }),
+            invoice     => $invoice,
+        });
+        if ( ! $order ) {
+            Kirin::Utils->email_boss(
+                severity    => "error",
+                customer    => $mm->{customer},
+                context     => "Trying to create order for domain renewal",
+                message     => "Cannot create order entry for renewal of $domain for $years years"
+            );
+            $mm->message("Our systems are unable to record your order");
+            return $mm->respond("plugins/domain_name/renew", domain => $domain);
+        }
+        $order->set_status("New Order");
+        $order->set_status("Invoiced");
+        $mm->{order} = $order->id;
+    }
+
+    if ( $order->status eq 'Invoiced' ) {
+        return $mm->respond("plugins/invoice/view", invoice => $order->invoice);
+    }
+    $self->view($mm, $order->id);
+}
+
+sub process {
+    my ($self, $id) = @_;
+
+    my $order = Kirin::DB::Orders->retrieve($id);
+    if ( ! $order || ! $order->invoice->paid ) { return; }
+
+    if ( $order->module ne __PACKAGE__ ) { return; }
+
+    my $op = $json->decode($order->parameters);
+
+    my $tld_handler = Kirin::DB::TldHandler->retrieve($op->{tld});
+    if ( ! $tld_handler ) {
+        carp "TLD hander not available for ".$op->{tld};
+        return;
+    }
+
+    my $domain = $op->{domain};
+
+    if ( $order->order_type eq 'Domain Registration' ) {
+        if ($r->register(domain => $domain, %$op)) {
+            $mm->message("Domain registered!");
+            Kirin::DB::DomainName->create({
+                customer       => $mm->{customer},
+                domain         => $domain,
+                registrar      => $tld_handler->registrar,
+                tld_handler    => $tld_handler->id,
+                billing        => $json->encode($op->{billing}),
+                admin          => $json->encode($op->{admin}),
+                technical      => $json->encode($op->{technical}),
+                nameserverlist => $json->encode($op->{nameserverlist}),
+                expires        => Time::Piece->new + $tld_handler->duration * ONE_YEAR * $op->{years}
+            });
+
+            $order->set_status('Completed');
+            $mm->message("Domain $domain registered");
+            return $self->list($mm);
+        }
+        else {
+            # XXX What to do if registration fails?
+        }
+    }
+    elsif ( $order->order_type eq 'Domain Renewal' ) {
+        my $d = Kirin::DB::DomainName->search(domain => $domain,
+            customer => $mm->{customer});
+        if ( ! $d ) { return; }
+
+        my $r = $self->_get_reghandle($mm, $d->registrar);
+        if ( ! $r->can('renew') ) {
+            Kirin::Utils->email_boss(
+                severity => "error",
+                context  => "trying to get reghandle to renew $domain",
+                message  => "Cannot find renew method in reg handle for $domain",
+            );
+            return;
+        }
+
+        if ($r->renew(domain => $domain, years => $op->{years})) {
+            $mm->message("Domain renewed");
+            $domain->expires($domain->expires + ONE_YEAR * $years);
+            $domain->update();
+            $order->set_status('Completed');
+            return $self->list($mm);
+        }
+        else {
+            $mm->message("Your domain renewal failed");
+            return $mm->respond("plugins/domain_name/renew", domain => $domain);
+        }
     }
 }
 
@@ -269,31 +414,6 @@ sub change_nameservers {
         current => \@current,
         domain  => $domain
     );
-}
-
-sub renew {
-    my ($self, $mm, $domainid) = @_;
-    my %rv = $self->_get_domain($mm, $domainid);
-    return $rv{response} if exists $rv{response};
-    my ($domain, $handle) = ($rv{object}, $rv{reghandle});
-    if (!$mm->param("duration")) {
-        return $mm->respond("plugins/domain_name/renew", domain => $domain);
-    }
-    my $years = $mm->param("duration");
-    my $price = $domain->tld_handler->price * $years / $domain->tld_handler->duration;
-    if ($handle->renew(domain => $domain->domain, years => $years)) {
-        $mm->{customer}->bill_for({
-            description  => "Renewal of of domain ".$domain->domain." for $years years",
-            cost         => $price
-        });
-        $mm->message("Domain renewed");
-        $domain->expires($domain->expires + ONE_YEAR * $years);
-        $domain->update();
-        return $self->list($mm);
-    }
-    # Something went wrong
-    $mm->message("Your request could not be processed");
-    return $mm->respond("plugins/domain_name/renew", domain => $domain);
 }
 
 sub revoke {
