@@ -68,7 +68,7 @@ sub order {
         return $sendthemback->("You need to fill in these fields: " . join ", ", keys %need);
     }
     my ($key, $csr) = _make_key_csr($x509);
-    use Data::Dumper; warn Dumper($request);
+    warn Dumper($request) if $debug;
     $request->{CSR} = $csr;
 
     my $order = undef;
@@ -132,8 +132,9 @@ sub process {
     if ( ! $id ) { return; }
 
     my $order = Kirin::DB::Orders->retrieve($id);
-    if ( ! $order ) { return; }
-    if ( ! $order->invoice->paid ) { return; }
+    if ( ! $order || ! $order->invoice->paid ) { return; }
+
+    if ( $order->module ne __PACKAGE__ ) { return; }
 
     my $op = $json->decode($order->parameters);
 
