@@ -1,6 +1,5 @@
 package Kirin::Plugin::DomainName;
 use Regexp::Common qw/net/;
-use JSON::XS;
 use Net::DomainRegistration::Simple;
 use List::Util qw/sum/;
 use strict;
@@ -9,6 +8,10 @@ use Time::Seconds;
 sub name      { "domain_name" }
 sub default_action { "list" }
 sub user_name {"Domain Names"}
+
+use JSON;
+
+my $json = JSON->new->allow_blessed;
 
 my @fieldmap = (
     # Label, field for N::DR::S, field from customer profile
@@ -78,7 +81,7 @@ sub register {
     my $years = $mm->param("duration") =~ /\d+/ ? $mm->param("duration") : 1;
 
     my $order = undef;
-    if ( ! $params->{order} || ! ( $order = Kirin::DB::Orders->retrieve($params->{order}) ) ) {
+    if ( ! $mm->param('order') || ! ( $order = Kirin::DB::Orders->retrieve($mm->param('order') ) ) ) {
         my $price = $tld_handler->price * $years / $domain->tld_handler->duration;
         my $invoice = $mm->{customer}->bill_for({
             description  => "Registration of domain $domain",
@@ -133,7 +136,7 @@ sub renew {
     my $price = $domain->tld_handler->price * $years / $domain->tld_handler->duration;
 
     my $order = undef;
-    if ( ! $params->{order} || ! ( $order = Kirin::DB::Orders->retrieve($params->{order}) ) ) {
+    if ( ! $mm->param('order') || ! ( $order = Kirin::DB::Orders->retrieve($mm->param('order')) ) ) {
         my $invoice = $mm->{customer}->bill_for({
             description  => "Renewal of of domain ".$domain->domain." for $years years",
             cost         => $price
@@ -182,13 +185,18 @@ sub process {
 
     my $tld_handler = Kirin::DB::TldHandler->retrieve($op->{tld});
     if ( ! $tld_handler ) {
-        carp "TLD hander not available for ".$op->{tld};
+        warn "TLD hander not available for ".$op->{tld};
         return;
     }
 
     my $domain = $op->{domain};
 
+    my $mm = undef; # XXX this is not right. I need the $mm handler :(
+
     if ( $order->order_type eq 'Domain Registration' ) {
+
+        my $r = $self->_get_reghandle($mm, $tld_handler->registrar);
+
         if ($r->register(domain => $domain, %$op)) {
             $mm->message("Domain registered!");
             Kirin::DB::DomainName->create({
@@ -228,7 +236,7 @@ sub process {
 
         if ($r->renew(domain => $domain, years => $op->{years})) {
             $mm->message("Domain renewed");
-            $domain->expires($domain->expires + ONE_YEAR * $years);
+            $domain->expires($domain->expires + ONE_YEAR * $op->{years});
             $domain->update();
             $order->set_status('Completed');
             return $self->list($mm);
