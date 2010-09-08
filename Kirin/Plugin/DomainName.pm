@@ -33,6 +33,17 @@ sub list {
     $mm->respond("plugins/domain_name/list", names => \@names);
 }
 
+sub view {
+    my ($self, $mm, $id) = @_;
+
+    my $d = Kirin::DB::DomainName->retrieve($id);
+    if ( ! $d ) {
+        $self->list();
+        return;
+    }
+    $mm->respond("plugins/domain_name/view", domain => $d);
+}
+
 sub register {
     my ($self, $mm) = @_;
     # Get a domain name
@@ -121,7 +132,7 @@ sub register {
         return $mm->respond("plugins/invoice/view", invoice => $order->invoice);
     }
                 
-    $self->view($mm, $order->id);
+    $self->order_view($mm, $order->id);
 }
 
 sub renew {
@@ -170,7 +181,19 @@ sub renew {
     if ( $order->status eq 'Invoiced' ) {
         return $mm->respond("plugins/invoice/view", invoice => $order->invoice);
     }
-    $self->view($mm, $order->id);
+    $self->order_view($mm, $order->id);
+}
+
+sub order_view {
+    my ($self, $mm, $id) = @_;
+
+    my $order = Kirin::DB::Orders->retrieve($id);
+    if ( ! $order ) {
+        $self->list();
+        return;
+    }
+
+    return $mm->respond("plugins/domain_name/order_view", order => $order);
 }
 
 sub process {
