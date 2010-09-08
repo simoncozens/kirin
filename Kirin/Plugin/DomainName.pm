@@ -35,13 +35,22 @@ sub list {
 
 sub view {
     my ($self, $mm, $id) = @_;
-
     my $d = Kirin::DB::DomainName->retrieve($id);
     if ( ! $d ) {
         $self->list();
         return;
     }
     $mm->respond("plugins/domain_name/view", domain => $d);
+}
+
+sub order_view {
+    my ($self, $mm, $id) = @_;
+    my $order = Kirin::DB::Orders->retrieve($id);
+    if ( ! $order ) {
+        $self->list();
+        return;
+    }
+    return $mm->respond("plugins/domain_name/order_view", order => $order);
 }
 
 sub register {
@@ -102,15 +111,7 @@ sub register {
             customer    => $mm->{customer},
             order_type  => 'Domain Registration',
             module      => __PACKAGE__,
-            parameters  => $json->encode( {
-                domain         => $domain,
-                tld            => $tld,
-                billing        => $rv{billing},
-                admin          => $rv{admin},
-                technical      => $rv{technical},
-                nameserverlist => $rv{nameservers},
-                years          => $years
-            }),
+            parameters  => $json->encode(\%rv),
             invoice     => $invoice->id,
         });
         if ( ! $order ) {
@@ -125,7 +126,88 @@ sub register {
         }
         $order->set_status("New Order");
         $order->set_status("Invoiced");
-        $args{'order'} = $order->id;
+    }
+
+    if ( $order->status eq 'Invoiced' ) {
+        return $mm->respond("plugins/invoice/view", invoice => $order->invoice);
+    }
+                
+    $self->order_view($mm, $order->id);
+}
+
+sub transfer {
+    my ($self, $mm) = @_;
+    # Get a domain name
+    my $domain = $mm->param("domainpart");
+    my $tld    = $mm->param("tld");
+    my %args = (tlds      => [Kirin::DB::TldHandler->retrieve_all],
+                oldparams => $mm->{req}->parameters,
+                fields => \@fieldmap
+               );
+    if (!$domain or !$tld) { 
+        return $mm->respond("plugins/domain_name/transfer", %args);
+    }
+
+    $domain =~ s/\.$//;
+    if ($domain =~ /\./) { 
+        $mm->message("Domain name was malformed");
+        return $mm->respond("plugins/domain_name/transfer", %args);
+    }
+
+    my $tld_handler = Kirin::DB::TldHandler->retrieve($tld);
+    if (!$tld_handler) {
+        $mm->message("We don't handle that top-level domain");
+        return $mm->respond("plugins/domain_name/transfer", %args);
+    }
+    $domain .= ".".$tld_handler->tld;
+
+    # Check availability
+    my %rv = $self->_get_reghandle($mm, $tld_handler->registrar);
+    return $rv{response} if exists $rv{response};
+    my $r = $rv{reghandle};
+    if ($r->is_available($domain)) {
+        $mm->message("That domain does not exist. Continue if you wish to register it.");
+        return $mm->respond("plugins/domain_name/register", %args);
+    }
+    else {
+        $args{available} = 1;
+    }
+
+    if (!$mm->param("transfer")) { 
+        return $mm->respond("plugins/domain_name/transfer", %args);
+    }
+
+    # Get contact addresses, nameservers and register
+    %rv = $self->_get_register_args($mm, 0, $tld_handler, %args);
+    return $rv{response} if exists $rv{response};
+
+    my $years = $mm->param("duration") =~ /\d+/ ? $mm->param("duration") : 1;
+    my $order = undef;
+    if ( ! $mm->param('order') || ! ( $order = Kirin::DB::Orders->retrieve($mm->param('order') ) ) ) {
+        my $price = $tld_handler->price * $years / $domain->tld_handler->duration;
+        my $invoice = $mm->{customer}->bill_for({
+            description  => "Transfer of domain $domain",
+            cost         => $price
+        });
+        $order = Kirin::DB::Orders->insert( {
+            customer    => $mm->{customer},
+            order_type  => 'Domain Transfer',
+            module      => __PACKAGE__,
+            parameters  => $json->encode(\%rv),
+            invoice     => $invoice->id,
+        });
+        if ( ! $order ) {
+            Kirin::Utils->email_boss(
+                severity    => "error",
+                customer    => $mm->{customer},
+                context     => "Trying to create order for domain transfer",
+                message     => "Cannot create order entry for transfer of $domain for $years years"
+            );
+            $mm->message("Our systems are unable to record your order");
+            return $mm->respond("plugins/domain_name/transfer", %args);
+        }
+        $order->set_status("New Order");
+        $order->set_status("Invoiced");
     }
 
     if ( $order->status eq 'Invoiced' ) {
@@ -157,7 +239,7 @@ sub renew {
             customer    => $mm->{customer},
             order_type  => 'Domain Renewal',
             module      => __PACKAGE__,
-            parameters  => $json->encode( {
+            parameters  => $json->encode({
                 domain         => $domain,
                 years          => $years
             }),
@@ -175,25 +257,12 @@ sub renew {
         }
         $order->set_status("New Order");
         $order->set_status("Invoiced");
-        $args{'order'} = $order->id;
     }
 
     if ( $order->status eq 'Invoiced' ) {
         return $mm->respond("plugins/invoice/view", invoice => $order->invoice);
     }
     $self->order_view($mm, $order->id);
-}
-
-sub order_view {
-    my ($self, $mm, $id) = @_;
-
-    my $order = Kirin::DB::Orders->retrieve($id);
-    if ( ! $order ) {
-        $self->list();
-        return;
-    }
-
-    return $mm->respond("plugins/domain_name/order_view", order => $order);
 }
 
 sub process {
@@ -215,15 +284,14 @@ sub process {
     my $domain = $op->{domain};
 
     my $mm = undef; # XXX this is not right. I need the $mm handler :(
+    my $r = $self->_get_reghandle($mm, $tld_handler->registrar);
 
     if ( $order->order_type eq 'Domain Registration' ) {
-
-        my $r = $self->_get_reghandle($mm, $tld_handler->registrar);
 
         if ($r->register(domain => $domain, %$op)) {
             $mm->message("Domain registered!");
             Kirin::DB::DomainName->create({
-                customer       => $mm->{customer},
+                customer       => $order->customer,
                 domain         => $domain,
                 registrar      => $tld_handler->registrar,
                 tld_handler    => $tld_handler->id,
@@ -234,20 +302,23 @@ sub process {
                 expires        => Time::Piece->new + $tld_handler->duration * ONE_YEAR * $op->{years}
             });
 
+            $order->set_status('Domain Registered');
             $order->set_status('Completed');
-            $mm->message("Domain $domain registered");
-            return $self->list($mm);
+            return 1;
         }
         else {
             # XXX What to do if registration fails?
         }
+    }
+    elsif ( $order->order_type eq 'Domain Transfer' ) {
+
+
     }
     elsif ( $order->order_type eq 'Domain Renewal' ) {
         my $d = Kirin::DB::DomainName->search(domain => $domain,
             customer => $mm->{customer});
         if ( ! $d ) { return; }
 
-        my $r = $self->_get_reghandle($mm, $d->registrar);
         if ( ! $r->can('renew') ) {
             Kirin::Utils->email_boss(
                 severity => "error",
@@ -258,11 +329,11 @@ sub process {
         }
 
         if ($r->renew(domain => $domain, years => $op->{years})) {
-            $mm->message("Domain renewed");
             $domain->expires($domain->expires + ONE_YEAR * $op->{years});
             $domain->update();
+            $order->set_status('Domain Renewed');
             $order->set_status('Completed');
-            return $self->list($mm);
+            return 1;
         }
         else {
             $mm->message("Your domain renewal failed");
@@ -456,6 +527,10 @@ sub revoke {
     if (!$mm->param("confirm")) {
         return $mm->respond("plugins/domain_name/revoke", domain => $domain);
     }
+    if ( ! $handle->can("revoke") ) {
+        $mm->message("It is not possible to revoke this type of domain registration");
+        return $self->view($domain->id);
+    }
     if ($handle->revoke(domain => $domain->domain)) {
         $domain->delete;
         return $self->list($mm);
@@ -464,6 +539,8 @@ sub revoke {
     $mm->message("Your request could not be processed");
     return $mm->respond("plugins/domain_name/revoke", domain => $domain);
 }
+
+
 sub _setup_db {
     shift->_ensure_table("domain_name");
     Kirin::DB::DomainName->has_a(tld_handler => "Kirin::DB::TldHandler");

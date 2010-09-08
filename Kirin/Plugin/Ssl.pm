@@ -108,7 +108,6 @@ sub order {
         $order->set_status("New Order");
 
         $order->set_status("Invoiced");
-        $args{order} = $order->id;
     }
     else {
         $order = Kirin::DB::Orders->retrieve($params->{order});
