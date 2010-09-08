@@ -368,7 +368,7 @@ sub change_contacts {
 
     # Massage existing stuff into oldparams
     for my $ctype (qw/billing admin technical/) {
-        my $it = decode_json($rv{object}->$ctype);
+        my $it = $json->decode($rv{object}->$ctype);
         for (@fieldmap) {
             $args{oldparams}{$ctype."_".$_->[1]} = $it->{$_->[1]};
             $mm->{req}->parameters->{$ctype."_".$_->[1]} = $it->{$_->[1]};
@@ -381,7 +381,7 @@ sub change_contacts {
 
     if ($mm->param("change") and $handle->change_contact(domain => $domain->domain, %rv)) {
         for (qw/billing admin technical/) {
-            $domain->$_(encode_json($rv{$_}));
+            $domain->$_($json->encode($rv{$_}));
         }
         $domain->update;
         $mm->message("Contact updated successfully");
@@ -396,7 +396,7 @@ sub change_nameservers {
     return $rv{response} if exists $rv{response};
 
     my ($domain, $handle) = ($rv{object}, $rv{reghandle});
-    my @current = @{decode_json($domain->nameserverlist)};
+    my @current = @{$json->decode($domain->nameserverlist)};
     my ($primary, $secondary) = map { $mm->param($_) } qw/primary_ns secondary_ns/;
     if ($mm->param("usedefaultns")) { 
         ($primary, $secondary) = (Kirin->args->{primary_dns_server},
@@ -410,7 +410,7 @@ sub change_nameservers {
             $mm->message("Nameserver address should be a hostname");
         } elsif ($handle->set_nameservers(domain => $domain->domain,
             nameservers => [ $primary, $secondary ])) {
-            $domain->nameserverlist(encode_json([ $primary, $secondary ]));
+            $domain->nameserverlist($json->encode([ $primary, $secondary ]));
             $domain->update;
             $mm->message("Nameservers changed");
             return $self->list($mm);
