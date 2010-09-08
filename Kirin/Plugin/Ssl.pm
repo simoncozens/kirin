@@ -26,6 +26,18 @@ sub list {
         orders => \@orders, addable => 1 );
 }
 
+sub view {
+    my ($self, $mm, $id) = @_;
+
+    my $cert = Kirin::DB::SslCertificate->retrieve($id);
+    if ( ! $cert ) {
+        $self->list();
+        return;
+    }
+
+    $mm->respond("plugins/ssl/view", certificate => $cert);
+}
+
 sub order {
     my ($self, $mm) = @_;
 
@@ -96,7 +108,7 @@ sub order {
         $order->set_status("New Order");
 
         $order->set_status("Invoiced");
-        $mm->{order} = $order->id;
+        $args{order} = $order->id;
     }
     else {
         $order = Kirin::DB::Orders->retrieve($params->{order});
@@ -106,10 +118,10 @@ sub order {
         return $mm->respond("plugins/invoice/view", invoice => $order->invoice);
     }
 
-    $self->view($mm, $order->id);
+    $self->order_view($mm, $order->id);
 }
 
-sub view {
+sub order_view {
     my ($self, $mm, $id) = @_;
 
     $self->list($mm) if ! $id;
@@ -124,7 +136,7 @@ sub view {
         $cert->update_from_enom;
     }
 
-    return $mm->respond("plugins/ssl/view", cert => $cert);
+    return $mm->respond("plugins/ssl/order_view", cert => $cert);
 }
 
 sub process {

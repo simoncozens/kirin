@@ -114,7 +114,7 @@ sub register {
         }
         $order->set_status("New Order");
         $order->set_status("Invoiced");
-        $mm->{order} = $order->id;
+        $args{'order'} = $order->id;
     }
 
     if ( $order->status eq 'Invoiced' ) {
@@ -164,7 +164,7 @@ sub renew {
         }
         $order->set_status("New Order");
         $order->set_status("Invoiced");
-        $mm->{order} = $order->id;
+        $args{'order'} = $order->id;
     }
 
     if ( $order->status eq 'Invoiced' ) {
