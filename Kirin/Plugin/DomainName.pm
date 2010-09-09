@@ -102,7 +102,7 @@ sub register {
 
     my $order = undef;
     if ( ! $mm->param('order') || ! ( $order = Kirin::DB::Orders->retrieve($mm->param('order') ) ) ) {
-        my $price = $tld_handler->price * $years / $domain->tld_handler->duration;
+        my $price = $tld_handler->price * $years / $tld_handler->duration;
         my $invoice = $mm->{customer}->bill_for({
             description  => "Registration of domain $domain",
             cost         => $price
@@ -184,7 +184,7 @@ sub transfer {
     my $years = $mm->param("duration") =~ /\d+/ ? $mm->param("duration") : 1;
     my $order = undef;
     if ( ! $mm->param('order') || ! ( $order = Kirin::DB::Orders->retrieve($mm->param('order') ) ) ) {
-        my $price = $tld_handler->price * $years / $domain->tld_handler->duration;
+        my $price = $tld_handler->price * $years / $tld_handler->duration;
         my $invoice = $mm->{customer}->bill_for({
             description  => "Transfer of domain $domain",
             cost         => $price
@@ -409,8 +409,8 @@ sub _get_register_args {
 
 sub _get_reghandle {
     my ($self, $mm, $reg) = @_;
-    my %credentials = Kirin->args->{registrar_credentials}{$reg};
-    if (!%credentials) {
+    my $credentials = Kirin->args->{registrar_credentials}->{$reg};
+    if (!$credentials) {
         $mm->message("Internal error: Couldn't connect to that registrar");
         Kirin::Utils->email_boss(
             severity => "error",
@@ -422,7 +422,7 @@ sub _get_reghandle {
 
     my $r = Net::DomainRegistration::Simple->new(
         registrar => $reg,
-        %credentials
+        %{$credentials},
     );
     if (!$r) {
         $mm->message("Internal error: Couldn't connect to that registrar");
