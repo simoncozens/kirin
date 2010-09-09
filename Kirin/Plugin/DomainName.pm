@@ -99,11 +99,11 @@ sub register {
     %rv = $self->_get_register_args($mm, 0, $tld_handler, %args);
     return $rv{response} if exists $rv{response};
 
-    my $years = $mm->param("duration") =~ /\d+/ ? $mm->param("duration") : 1;
+    my $years = $mm->param("years") =~ /\d+/ ? $mm->param("years") : 1;
 
     my $order = undef;
     if ( ! $mm->param('order') || ! ( $order = Kirin::DB::Orders->retrieve($mm->param('order') ) ) ) {
-        my $price = $tld_handler->price * $years / $tld_handler->duration;
+        my $price = $tld_handler->price * $years;
         my $invoice = $mm->{customer}->bill_for({
             description  => "Registration of domain $domain",
             cost         => $price
