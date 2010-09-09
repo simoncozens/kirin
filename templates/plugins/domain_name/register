@@ -11,6 +11,18 @@
 [%END%]
 </select>
 [% IF available %]
+    <h3> Registration Period </h3>
+
+    <p>Please select the period you wish to register the domain name for: 
+
+    <select name="years">
+    [% FOREACH d IN years %]
+        <option value="[% d %]" [% "SELECTED" IF oldparams.years == d %]>[% d %] Years</option>
+    [% END %]
+    </select>
+
+    </p>
+    
     <h3> Contact details </h3>
 
     <p> The domain is available for purchase. Please enter the contact

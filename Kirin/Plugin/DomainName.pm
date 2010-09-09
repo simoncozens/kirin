@@ -60,7 +60,7 @@ sub register {
     my $tld    = $mm->param("tld");
     my %args = (tlds      => [Kirin::DB::TldHandler->retrieve_all],
                 oldparams => $mm->{req}->parameters,
-                fields => \@fieldmap
+                fields => \@fieldmap,
                );
     if (!$domain or !$tld) { 
         return $mm->respond("plugins/domain_name/register", %args);
@@ -90,7 +90,8 @@ sub register {
         $args{available} = 1;
     }
 
-    if (!$mm->param("register")) { 
+    if (!$mm->param("register")) {
+        $args{years} = [ $tld_handler->min_duration .. $tld_handler->max_duration ];
         return $mm->respond("plugins/domain_name/register", %args);
     }
 
@@ -174,6 +175,7 @@ sub transfer {
     }
 
     if (!$mm->param("transfer")) { 
+        $args{years} = [ $tld_handler->min_duration .. $tld_handler->max_duration ];
         return $mm->respond("plugins/domain_name/transfer", %args);
     }
 
@@ -343,7 +345,7 @@ sub process {
 }
 
 sub _get_register_args {
-    # Give me back: billing, admin, technical, nameservers, duration
+    # Give me back: billing, admin, technical, nameservers, years
     my ($self, $mm, $just_contacts, $tld_handler, %args) = @_;
     my %rv;
     # Do the initial copy
@@ -372,6 +374,15 @@ sub _get_register_args {
             }
             if ($ok) { $rv{nameservers} = \@ns }
         }
+        if ( ! $mm->param("years") ) {
+            $args{years} = [ $tld_handler->min_duration .. $tld_handler->max_duration ];
+            $args{notsupplied}{years}++;
+            
+            warn Dumper(\%args);
+
+            $rv{response} = $mm->respond("plugins/domain_name/register", %args);
+        }
+        else { warn "Registration for ".$mm->param("years"); }
     }
 
     # Now do some tidy-up
@@ -558,17 +569,24 @@ sub admin {
             $mm->message("Handler must have a registrar");
         } elsif (!$mm->param("tld")) {
             $mm->message("Handler must have a name");
+        }
+        elsif ( !$mm->param("price") ) {
+            $mm->message("You must specify the annual price for the domain");
+        }
+        elsif ( ! $mm->param("min_duration") || ! $mm->param("max_duration") ) {
+            $mm->message("You must specify the minimum and maximum registration period in years.");
         } else {
             my $handler = Kirin::DB::TldHandler->create({
                 map { $_ => $mm->param($_) }
-                    qw/tld registrar price duration/
+                    qw/tld registrar price min_duration max_duration/
             });
             $mm->message("Handler created") if $handler;
         }
     } elsif (my $id = $mm->param("edittld")) {
         my $handler = Kirin::DB::TldHandler->retrieve($id);
         if ($handler) {
-            for (qw/tld registrar price duration/) {
+            for (qw/tld registrar price min_duration max_duration/) {
+                next if ! $mm->param($_);
                 $handler->$_($mm->param($_));
             }
             $handler->update();
@@ -600,7 +618,8 @@ CREATE TABLE IF NOT EXISTS tld_handler ( id integer primary key not null,
     tld varchar(20),
     registrar varchar(40),
     price number(5,2),
-    duration integer
+    min_duration integer,
+    max_duration integer
 );
 /}
 1;

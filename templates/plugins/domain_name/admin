@@ -1,5 +1,5 @@
 <table>
-<tr><th>TLD</th><th>Registrar</th><th>Price</th><th>Duration</th></tr>
+<tr><th>TLD</th><th>Registrar</th><th>Price</th><th>Min Duration</th><th>Max Duration</th></tr>
 [% FOR p = tlds %]
 <tr>
     <form method="post">
@@ -7,7 +7,8 @@
     <td> <input name="tld" value="[%p.tld%]"> </td>
     <td> <input name="registrar" value="[%p.registrar%]"> </td>
     <td> <input name="price" value="[%p.price%]"> </td>
-    <td> <input name="duration" value="[%p.duration%]"> Years </td>
+    <td> <input name="min_duration" value="[%p.min_duration%]"> Years </td>
+    <td> <input name="max_duration" value="[%p.max_duration%]"> Years </td>
     <td> <input type="submit" value="Edit"> </td>
     </form>
     <form method="post">
@@ -23,7 +24,8 @@
     <td> <input name="tld" > </td>
     <td> <input name="registrar" > </td>
     <td> <input name="price" > </td>
-    <td> <input name="duration" > Years </td>
+    <td> <input name="min_duration" > Years </td>
+    <td> <input name="max_duration" > Years </td>
     <td> <input type="submit" name="create" value="Create"> </td>
 </tr>
 </table>
