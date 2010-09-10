@@ -7,7 +7,7 @@
 [% FOR t = tlds %]
     <option value="[%t.id|html%]"
         [% "SELECTED" IF oldparams.tld == t.id %]
-    >.[%t.tld|html%] ([%t.price%]/[%t.duration%] years)</option>
+    >.[%t.tld|html%] (&pound;[%t.price%] per year)</option>
 [%END%]
 </select>
 [% IF available %]
