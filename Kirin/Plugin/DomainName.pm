@@ -565,10 +565,10 @@ sub admin {
     my ($self, $mm) = @_;
     if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
     if ($mm->param("create")) {
-        if (!$mm->param("registrar")) {
-            $mm->message("Handler must have a registrar");
+        if (!$mm->param("registrar") || ! Kirin->args->{registrar_credentials}->{$mm->param("registrar")} ) {
+            $mm->message("Select a Registrar from the supplied list");
         } elsif (!$mm->param("tld")) {
-            $mm->message("Handler must have a name");
+            $mm->message("You must specify a valid domain TLD");
         }
         elsif ( !$mm->param("price") ) {
             $mm->message("You must specify the annual price for the domain");
