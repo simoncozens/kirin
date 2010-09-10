@@ -595,8 +595,12 @@ sub admin {
          my $thing = Kirin::DB::TldHandler->retrieve($id);
          if ($thing) { $thing->delete; $mm->message("Handler deleted") }
     }
-    my @tlds = Kirin::DB::TldHandler->retrieve_all();   
-    $mm->respond("plugins/domain_name/admin", tlds => \@tlds);
+
+    my @tlds = Kirin::DB::TldHandler->retrieve_all();
+    my %args = ( tlds => \@tlds, 
+        registrars => [ keys %{Kirin->args->{registrar_credentials}} ],
+    );
+    $mm->respond("plugins/domain_name/admin", %args);
 }
 
 package Kirin::DB::DomainName;

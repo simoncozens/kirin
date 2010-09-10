@@ -5,7 +5,11 @@
     <form method="post">
     <input type="hidden" value="[%p.id%]" name="edittld">
     <td> <input name="tld" value="[%p.tld%]"> </td>
-    <td> <input name="registrar" value="[%p.registrar%]"> </td>
+    <td> <select name="registrar">
+    [% FOREACH r IN registrars %]
+        <option value="[%r%]" [% "SELECTED" IF p.registrar == r %]>[%r%]</option>
+    [% END %]
+    </select></td>
     <td> <input name="price" value="[%p.price%]"> </td>
     <td> <input name="min_duration" value="[%p.min_duration%]"> Years </td>
     <td> <input name="max_duration" value="[%p.max_duration%]"> Years </td>
@@ -22,7 +26,11 @@
 <tr>
     <form method="post">
     <td> <input name="tld" > </td>
-    <td> <input name="registrar" > </td>
+    <td> <select name="registrar">
+    [% FOREACH r IN registrars %]
+        <option value="[%r%]" [% "SELECTED" IF oldparams.registrar == r %]>[%r%]</option>
+    [% END %]
+    </select></td>
     <td> <input name="price" > </td>
     <td> <input name="min_duration" > Years </td>
     <td> <input name="max_duration" > Years </td>

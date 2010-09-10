@@ -17,7 +17,7 @@
 
     <select name="years">
     [% FOREACH d IN years %]
-        <option value="[% d %]" [% "SELECTED" IF oldparams.years == d %]>[% d %] Years</option>
+        <option value="[%d%]" [% "SELECTED" IF oldparams.years == d %]>[%d%] Years</option>
     [% END %]
     </select>
 
