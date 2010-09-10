@@ -27,6 +27,10 @@ sub view {
         return $self->list($mm);
     }
 
+    if ( $mm->param("process") ) {
+        $order->process($id);
+    }
+
     my @updates = Kirin::DB::OrderUpdates->search( orders => $id );
     $mm->respond("plugins/orders/view", order => $order);
 }
@@ -105,7 +109,7 @@ sub set_status {
 sub process {
     my $self = shift;
 
-    my $module = "Kirin::Plugin::".$self->module;
+    my $module = $self->module;
     $module->require || die "Unable to require module $module";
     $module->process($self->id) || die "unable to process order ".$self->id;
     $self->set_status("Processing");

@@ -25,6 +25,16 @@
         </td>
     </tr>
     [% END %]
+    <tr>
+    <th>Registrant Type</th>
+    <td></td>
+    <td><select name="type">
+    [% FOREACH t IN types %]
+        <option value="admin_[%t%]" [% "SELECTED" IF oldparams.type == t %]>[%t%]</option>
+    [% END %]
+    </select>
+    </td>
+    <td></td>
     </table>
     [% IF notsupplied %]
     <p class="error"> Please complete the fields marked *</p>

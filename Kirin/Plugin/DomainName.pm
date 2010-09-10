@@ -112,7 +112,12 @@ sub register {
             customer    => $mm->{customer},
             order_type  => 'Domain Registration',
             module      => __PACKAGE__,
-            parameters  => $json->encode(\%rv),
+            parameters  => $json->encode( {
+                rv         => \%rv,
+                tld        => $tld,
+                domain     => $domain,
+                years      => $years,
+            } ),
             invoice     => $invoice->id,
         });
         if ( ! $order ) {
@@ -195,7 +200,12 @@ sub transfer {
             customer    => $mm->{customer},
             order_type  => 'Domain Transfer',
             module      => __PACKAGE__,
-            parameters  => $json->encode(\%rv),
+            parameters  => $json->encode(
+                rv         => \%rv,
+                tld        => $tld,
+                domain     => $domain,
+                years      => $years,
+            ),
             invoice     => $invoice->id,
         });
         if ( ! $order ) {
@@ -289,27 +299,29 @@ sub process {
     my $r = $self->_get_reghandle($mm, $tld_handler->registrar);
 
     if ( $order->order_type eq 'Domain Registration' ) {
-
-        if ($r->register(domain => $domain, %$op)) {
+        my $reg = undef;
+        eval { $reg = $r->register(domain => $domain, %{$op->{rv}}); };
+        if ( ! $reg ) {
+            warn $@;
+            return;
+        }
+        else {
             $mm->message("Domain registered!");
             Kirin::DB::DomainName->create({
                 customer       => $order->customer,
                 domain         => $domain,
                 registrar      => $tld_handler->registrar,
                 tld_handler    => $tld_handler->id,
-                billing        => $json->encode($op->{billing}),
-                admin          => $json->encode($op->{admin}),
-                technical      => $json->encode($op->{technical}),
-                nameserverlist => $json->encode($op->{nameserverlist}),
-                expires        => Time::Piece->new + $tld_handler->duration * ONE_YEAR * $op->{years}
+                billing        => $json->encode($op->{rv}->{billing}),
+                admin          => $json->encode($op->{rv}->{admin}),
+                technical      => $json->encode($op->{rv}->{technical}),
+                nameserverlist => $json->encode($op->{rv}->{nameserverlist}),
+                expires        => Time::Piece->new + * ONE_YEAR * $op->{years}
             });
 
             $order->set_status('Domain Registered');
             $order->set_status('Completed');
             return 1;
-        }
-        else {
-            # XXX What to do if registration fails?
         }
     }
     elsif ( $order->order_type eq 'Domain Transfer' ) {
