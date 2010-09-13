@@ -25,17 +25,22 @@
         </td>
     </tr>
     [% END %]
-    <tr>
-    <th>Registrant Type</th>
-    <td></td>
-    <td><select name="type">
-    [% FOREACH t IN types %]
-        <option value="admin_[%t%]" [% "SELECTED" IF oldparams.type == t %]>[%t%]</option>
-    [% END %]
-    </select>
-    </td>
-    <td></td>
     </table>
+
+    [% IF ukdomain %]
+    <h3>Registrant Type</h3>
+
+    <p><select name="type">
+        [% FOREACH t IN types %]
+            <option value="[%t.type%]" [% "SELECTED" IF oldparams.type == t.type %]>[%t.description%]</option>
+        [% END %]
+    </select></p>
+    <p><b>Company Number (for UK Companies only):</b> <input name="cono" value="[%cono%]"></p>
+    <p><b>WHOIS Privacy (for non-trading individuals only):</b>
+    <input type="radio" name="opt-out" value="N" checked />No 
+    <input Type="radio" name="opt-out" value="Y" />Yes</p>
+    [% END %]
+
     [% IF notsupplied %]
     <p class="error"> Please complete the fields marked *</p>
     [% END %]

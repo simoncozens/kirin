@@ -18,6 +18,7 @@ my @fieldmap = (
     ["First Name", "firstname", "forename"],
     ["Last Name", "lastname", "surname"],
     ["Company", "company", "org"],
+    ["Trading Name", "trad-name", "trad-name"],
     ["Address", "address", "address"],
     ["City", "city", "town"],
     ["State", "state", "county"],
@@ -88,6 +89,11 @@ sub register {
     }
     else {
         $args{available} = 1;
+    }
+
+    if ( $tld_handler->registrar eq 'Nominet' ) {
+        $args{ukdomain} = 1;
+        $args{types} = [Kirin::DB::RegType->retrieve_all()];
     }
 
     if (!$mm->param("register")) {
@@ -390,11 +396,8 @@ sub _get_register_args {
             $args{years} = [ $tld_handler->min_duration .. $tld_handler->max_duration ];
             $args{notsupplied}{years}++;
             
-            warn Dumper(\%args);
-
             $rv{response} = $mm->respond("plugins/domain_name/register", %args);
         }
-        else { warn "Registration for ".$mm->param("years"); }
     }
 
     # Now do some tidy-up
@@ -414,11 +417,41 @@ sub _get_register_args {
         }
         # Anything else?
     }
+    if ( $tld_handler->registrar eq 'Nominet' ) {
+        if ( ! $mm->param("type") ) {
+            $mm->message("You must select a registrant type");
+            $rv{response} = $mm->respond("plugins/domain_name/register", %args);
+        }
+        else {
+            if ( $tld_handler->tld eq 'LTD' || $tld_handler->tld eq 'PLC' ) {
+                if ( $mm->param("type") !~ /^(LTD|PLC)$/ ) {
+                    $mm->message("Only a UK company registered with Companies House may register a .ltd.uk or .plc.uk domain");
+                    $rv{response} = $mm->respond("plugins/domain_name/register", %args);
+                }
+            }
+            if ( $mm->param("type") =~ /^(LTD|PLC)$/ ) {
+                if ( ! $mm->param("cono") ) {
+                    $mm->message("You must specify the Registered Company Number");
+                    $rv{response} = $mm->respond("plugins/domain_name/register", %args);
+                }
+                else {
+                    $rv{admin}{"co-no"} = $mm->param("cono");
+                }
+            }
+            $rv{admin}{type} = $mm->param("type");
+        }
+        if ( $mm->param("type") !~ /^(IND|FIND)$/ && $mm->param("opt-out") eq 'Y' ) {
+            $mm->message("Only non-trading individuals may select WHOIS privacy");
+            $rv{response} = $mm->respond("plugins/domain_name/register", %args);
+        }
+        $rv{admin}{"opt-out"} = $mm->param("opt-out");
+    }
 
     # Final check for all parameters
     for my $field (map { $_->[1] } @{$args{fields}}) {
         for (qw/admin billing technical/) {
             if (! $rv{$_}{$field}) {
+                next if $field eq 'trad-name' || $field eq 'Trading Name';
                 $args{notsupplied}{"${_}_$field"}++;
                 $rv{response} = 
                     $just_contacts ? 
@@ -576,41 +609,77 @@ sub _setup_db {
 sub admin {
     my ($self, $mm) = @_;
     if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
-    if ($mm->param("create")) {
-        if (!$mm->param("registrar") || ! Kirin->args->{registrar_credentials}->{$mm->param("registrar")} ) {
-            $mm->message("Select a Registrar from the supplied list");
-        } elsif (!$mm->param("tld")) {
-            $mm->message("You must specify a valid domain TLD");
-        }
-        elsif ( !$mm->param("price") ) {
-            $mm->message("You must specify the annual price for the domain");
-        }
-        elsif ( ! $mm->param("min_duration") || ! $mm->param("max_duration") ) {
-            $mm->message("You must specify the minimum and maximum registration period in years.");
-        } else {
-            my $handler = Kirin::DB::TldHandler->create({
-                map { $_ => $mm->param($_) }
-                    qw/tld registrar price min_duration max_duration/
-            });
-            $mm->message("Handler created") if $handler;
-        }
-    } elsif (my $id = $mm->param("edittld")) {
-        my $handler = Kirin::DB::TldHandler->retrieve($id);
-        if ($handler) {
-            for (qw/tld registrar price min_duration max_duration/) {
-                next if ! $mm->param($_);
-                $handler->$_($mm->param($_));
+    if ( $mm->param("tld")) {
+        if ($mm->param("create")) {
+            if (!$mm->param("registrar") || ! Kirin->args->{registrar_credentials}->{$mm->param("registrar")} ) {
+                $mm->message("Select a Registrar from the supplied list");
+            } elsif (!$mm->param("tld")) {
+                $mm->message("You must specify a valid domain TLD");
             }
-            $handler->update();
+            elsif ( !$mm->param("price") ) {
+                $mm->message("You must specify the annual price for the domain");
+            }
+            elsif ( ! $mm->param("min_duration") || ! $mm->param("max_duration") ) {
+                $mm->message("You must specify the minimum and maximum registration period in years.");
+            } else {
+                my $handler = Kirin::DB::TldHandler->create({
+                    map { $_ => $mm->param($_) }
+                        qw/tld registrar price min_duration max_duration/
+                });
+                $mm->message("Handler created") if $handler;
+            }
+        } elsif (my $id = $mm->param("edittld")) {
+            my $handler = Kirin::DB::TldHandler->retrieve($id);
+            if ($handler) {
+                for (qw/tld registrar price min_duration max_duration/) {
+                    next if ! $mm->param($_);
+                    $handler->$_($mm->param($_));
+                }
+                $handler->update();
+            }
+        } elsif (my $id = $mm->param("deletetld")) {
+             my $thing = Kirin::DB::TldHandler->retrieve($id);
+             if ($thing) { $thing->delete; $mm->message("Handler deleted") }
         }
-    } elsif (my $id = $mm->param("deletetld")) {
-         my $thing = Kirin::DB::TldHandler->retrieve($id);
-         if ($thing) { $thing->delete; $mm->message("Handler deleted") }
+    }
+    elsif ( $mm->param("reg_type")) {
+        if ( $mm->param("create")) {
+            if ( ! $mm->param("type") ) {
+                $mm->message("You must specify the registrant type code");
+            }
+            if ( ! $mm->param("description") ) {
+                $mm->message("You must provide a description for the registrant type");
+            }
+            my $type = Kirin::DB::RegType->create({
+                map { $_ => $mm->param($_) }
+                    qw/type description/
+            });
+            $mm->message("Registrant Type created") if $type;
+        }
+        elsif ( my $id = $mm->param("edit") ) {
+            my $type = Kirin::DB::RegType->retrieve($id);
+            if ( $type ) {
+                for (qw/type description/) {
+                    next if ! $mm->param($_);
+                    $type->$_($mm->param($_));
+                }
+                $type->update();
+            }
+        }
+        elsif (my $id = $mm->param("delete")) {
+            my $type = Kirin::DB::RegType->retrieve($id);
+            if ($type) {
+                $type->delete;
+                $mm->message("Registrant Type deleted");
+            }
+        }
     }
 
     my @tlds = Kirin::DB::TldHandler->retrieve_all();
+    my @types = Kirin::DB::RegType->retrieve_all();
     my %args = ( tlds => \@tlds, 
         registrars => [ keys %{Kirin->args->{registrar_credentials}} ],
+        types => \@types,
     );
     $mm->respond("plugins/domain_name/admin", %args);
 }
@@ -637,5 +706,14 @@ CREATE TABLE IF NOT EXISTS tld_handler ( id integer primary key not null,
     min_duration integer,
     max_duration integer
 );
+/}
+
+package Kirin::DB::RegType;
+
+sub sql{q/
+CREATE TABLE IF NOT EXISTS reg_type ( id integer primary key not null,
+    type varchar(20),
+    description varchar(80)
+);    
 /}
 1;

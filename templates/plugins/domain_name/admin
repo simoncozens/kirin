@@ -1,3 +1,4 @@
+<h3>TLD Management</h3>
 <table>
 <tr><th>TLD</th><th>Registrar</th><th>Price</th><th>Min Duration</th><th>Max Duration</th></tr>
 [% FOR p = tlds %]
@@ -37,3 +38,33 @@
     <td> <input type="submit" name="create" value="Create"> </td>
 </tr>
 </table>
+
+<h3>.UK Registrant Types</h3>
+<table>
+<tr><th>Code</th><th>Description</th></tr>
+[% FOR t IN types %]
+<tr>
+    <form method="post">
+    <input type="hidden" value="reg_type" name="reg_type">
+    <input type="hidden" value="[%t.id%]" name="edit">
+    <td><input name="type" value="[%t.type%]"></td>
+    <td><input name="description" value="[%t.description%]"></td>
+    <td><input type="submit" value="Edit"></td>
+    </form>
+    <form method="post">
+    <input type="hidden" value="reg_type" name="reg_type">
+    <input type="hidden" value="[%t.id%]" name="delete">
+    <td><input type="submit" value="Delete"></td>
+    </form>
+</tr>
+[% END %]
+
+<tr>
+    <form method="post">
+    <input type="hidden" value="reg_type" name="reg_type">
+    <td><input name="type"></td>
+    <td><input name="description"></td>
+    <td><input type="submit" name="create" value="Create"></td>
+</tr>
+</table>
+
