@@ -44,8 +44,6 @@ sub view {
     $rv{db} = $domain;
     eval {$rv{lr} = $handle->domain_info($domain->domain)};
 
-    warn Dumper(\%rv);
-
     $mm->respond("plugins/domain_name/".$domain->registrar."/view", %rv);
 }
 
