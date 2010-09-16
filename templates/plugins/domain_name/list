@@ -6,9 +6,11 @@
 [% FOR n = names %]
     <tr> <th> [%n.domain%] </th>
         <td> Expires [% n.expires.ymd %] </td>
+        <td> <a href="/domain_name/view/[%n.id%]">View Domain</a></td>
         <td> <a href="/domain_name/change_contacts/[%n.id%]">Change contacts</a></td>
         <td> <a href="/domain_name/change_nameservers/[%n.id%]">Change nameservers</a></td>
         <td> <a href="/domain_name/renew/[%n.id%]">Renew</a></td>
+        [% IF admin %]<td> <a href="/domain_name/delete/[%n.id%]">Delete</a></td>[%END%]
     </tr>
 [% END %]
 </table>

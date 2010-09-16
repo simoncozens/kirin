@@ -30,8 +30,12 @@ my @fieldmap = (
 
 sub list {
     my ($self, $mm) = @_;
-    my (@names) = Kirin::DB::DomainName->search(customer => $mm->{customer});
-    $mm->respond("plugins/domain_name/list", names => \@names);
+    my %args = ();
+    $args{names} = [Kirin::DB::DomainName->search(customer => $mm->{customer})];
+    if ( $mm->{user}->is_root ) {
+        $args{admin}++;
+    }
+    $mm->respond("plugins/domain_name/list", %args);
 }
 
 sub view {
@@ -603,6 +607,29 @@ sub _setup_db {
       inflate => sub { Time::Piece->strptime(shift, "%Y-%m-%d") },
       deflate => 'ymd',
     );
+}
+
+sub delete {
+    my ($self, $mm, $id) = @_;
+    if (!$mm->{user}->is_root) { return $mm->respond("403handler") }
+    my %rv = $self->_get_domain($mm, $id);
+    return $rv{response} if exists $rv{response};
+
+    my ($domain, $handle) = ($rv{object}, $rv{reghandle});
+    if (!$domain) {
+        $mm->message('That domain is not in the database.');
+        return $self->list($mm);
+    }
+    my $registered = undef;
+    eval { $registered = $handle->domain_info($domain->domain); };
+    if ( $registered ) {
+        # XXX check whether the domain is actually still registered with us.
+        #     if so do NOT delete it
+    }
+    else {
+        $domain->delete;
+    }
+    return $self->list($mm);
 }
 
 sub admin {
