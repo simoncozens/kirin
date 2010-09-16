@@ -35,7 +35,7 @@
             <option value="[%t.type%]" [% "SELECTED" IF oldparams.type == t.type %]>[%t.description%]</option>
         [% END %]
     </select></p>
-    <p><b>Company Number (for UK Companies only):</b> <input name="cono" value="[%cono%]"></p>
+    <p><b>Company Number (for UK Companies only):</b> <input name="cono" value="[%cono%]"> [% "<span class='error'>*</span>" IF notsupplied.cono %]</p>
     <p><b>WHOIS Privacy (for non-trading individuals only):</b>
     <input type="radio" name="opt-out" value="N" checked />No 
     <input Type="radio" name="opt-out" value="Y" />Yes</p>

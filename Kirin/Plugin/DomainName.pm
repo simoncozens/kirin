@@ -11,7 +11,7 @@ sub user_name {"Domain Names"}
 
 use JSON;
 
-my $json = JSON->new->allow_blessed;
+my $json = JSON->new->allow_blessed->allow_nonref;
 
 my @fieldmap = (
     # Label, field for N::DR::S, field from customer profile
@@ -36,22 +36,17 @@ sub list {
 
 sub view {
     my ($self, $mm, $id) = @_;
-    my $d = Kirin::DB::DomainName->retrieve($id);
-    if ( ! $d ) {
-        $self->list();
-        return;
-    }
-    $mm->respond("plugins/domain_name/view", domain => $d);
-}
+    my %rv = $self->_get_domain($mm, $id);
+    return $rv{response} if exists $rv{response};
 
-sub order_view {
-    my ($self, $mm, $id) = @_;
-    my $order = Kirin::DB::Orders->retrieve($id);
-    if ( ! $order ) {
-        $self->list();
-        return;
-    }
-    return $mm->respond("plugins/domain_name/order_view", order => $order);
+    my ($domain, $handle) = ($rv{object}, $rv{reghandle});
+    %rv = ();
+    $rv{db} = $domain;
+    eval {$rv{lr} = $handle->domain_info($domain->domain)};
+
+    warn Dumper(\%rv);
+
+    $mm->respond("plugins/domain_name/".$domain->registrar."/view", %rv);
 }
 
 sub register {
@@ -244,7 +239,7 @@ sub renew {
         return $mm->respond("plugins/domain_name/renew", domain => $domain);
     }
     my $years = $mm->param("duration");
-    my $price = $domain->tld_handler->price * $years / $domain->tld_handler->duration;
+    my $price = $domain->tld_handler->price * $years;
 
     my $order = undef;
     if ( ! $mm->param('order') || ! ( $order = Kirin::DB::Orders->retrieve($mm->param('order')) ) ) {
@@ -300,6 +295,7 @@ sub process {
     }
 
     my $domain = $op->{domain};
+    warn Dumper($op->{rv});
 
     my $mm = undef; # XXX this is not right. I need the $mm handler :(
     my $r = $self->_get_reghandle($mm, $tld_handler->registrar);
@@ -312,7 +308,6 @@ sub process {
             return;
         }
         else {
-            $mm->message("Domain registered!");
             Kirin::DB::DomainName->create({
                 customer       => $order->customer,
                 domain         => $domain,
@@ -321,7 +316,7 @@ sub process {
                 billing        => $json->encode($op->{rv}->{billing}),
                 admin          => $json->encode($op->{rv}->{admin}),
                 technical      => $json->encode($op->{rv}->{technical}),
-                nameserverlist => $json->encode($op->{rv}->{nameserverlist}),
+                nameserverlist => $json->encode($op->{rv}->{nameservers}),
                 expires        => Time::Piece->new + * ONE_YEAR * $op->{years}
             });
 
@@ -336,7 +331,7 @@ sub process {
     }
     elsif ( $order->order_type eq 'Domain Renewal' ) {
         my $d = Kirin::DB::DomainName->search(domain => $domain,
-            customer => $mm->{customer});
+            customer => $order->customer);
         if ( ! $d ) { return; }
 
         if ( ! $r->can('renew') ) {
@@ -348,16 +343,21 @@ sub process {
             return;
         }
 
-        if ($r->renew(domain => $domain, years => $op->{years})) {
+        eval { $r->renew(domain => $domain, years => $op->{years}) };
+        if ( $@ ) {
+            Kirin::Utils->email_boss(
+                severity => "error",
+                context  => "renewing domain $domain",
+                message  => "Unable to renew domain with registry - $@",
+            );
+            return;
+        }
+        else {
             $domain->expires($domain->expires + ONE_YEAR * $op->{years});
             $domain->update();
             $order->set_status('Domain Renewed');
             $order->set_status('Completed');
             return 1;
-        }
-        else {
-            $mm->message("Your domain renewal failed");
-            return $mm->respond("plugins/domain_name/renew", domain => $domain);
         }
     }
 }
@@ -432,6 +432,7 @@ sub _get_register_args {
             if ( $mm->param("type") =~ /^(LTD|PLC)$/ ) {
                 if ( ! $mm->param("cono") ) {
                     $mm->message("You must specify the Registered Company Number");
+                    $rv{notsupplied}{cono}++;
                     $rv{response} = $mm->respond("plugins/domain_name/register", %args);
                 }
                 else {
@@ -525,7 +526,7 @@ sub change_contacts {
         }
     }
 
-    %rv = $self->_get_register_args($mm, 1, $handle, %args);
+    %rv = $self->_get_register_args($mm, 1, $domain->tld_handler, %args);
     use Data::Dumper; warn Dumper(\%rv);
     return $rv{response} if exists $rv{response};
 
@@ -587,7 +588,8 @@ sub revoke {
         $mm->message("It is not possible to revoke this type of domain registration");
         return $self->view($domain->id);
     }
-    if ($handle->revoke(domain => $domain->domain)) {
+    eval { $handle->revoke(domain => $domain->domain); };
+    if ( ! $@ ) {
         $domain->delete;
         return $self->list($mm);
     }
@@ -595,7 +597,6 @@ sub revoke {
     $mm->message("Your request could not be processed");
     return $mm->respond("plugins/domain_name/revoke", domain => $domain);
 }
-
 
 sub _setup_db {
     shift->_ensure_table("domain_name");
