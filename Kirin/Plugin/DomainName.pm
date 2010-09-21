@@ -299,7 +299,7 @@ sub process {
     my $domain = $op->{domain};
     warn Dumper($op->{rv});
 
-    my $mm = undef; # XXX this is not right. I need the $mm handler :(
+    my $mm = undef; 
     my $r = $self->_get_reghandle($mm, $tld_handler->registrar);
 
     if ( $order->order_type eq 'Domain Registration' ) {
@@ -470,6 +470,7 @@ sub _get_reghandle {
     my ($self, $mm, $reg) = @_;
     my $credentials = Kirin->args->{registrar_credentials}->{$reg};
     if (!$credentials) {
+        return unless $mm;
         $mm->message("Internal error: Couldn't connect to that registrar");
         Kirin::Utils->email_boss(
             severity => "error",
@@ -484,6 +485,7 @@ sub _get_reghandle {
         %{$credentials},
     );
     if (!$r) {
+        return unless $mm;
         $mm->message("Internal error: Couldn't connect to that registrar");
         Kirin::Utils->email_boss(
             severity => "error",
