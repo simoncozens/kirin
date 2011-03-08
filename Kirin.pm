@@ -46,25 +46,25 @@ sub app {
 sub save_context {
     my ($self, $sess) = @_;
     # Save request path, CGI params
-    $sess->set("context", freeze({ 
+    $sess->{context} = freeze({ 
         path => $self->{req}->path,
         params => $self->{req}->parameters
-    }));
+    });
 }
 
 sub restore_context {
     my ($self, $sess) = @_;
-    if (my $context = $sess->get("context")) {
+    if (my $context = $sess->{context}) {
         $context = thaw($context);
         $self->{req}->path($context->{path});
         $self->{req}->parameters($context->{params});
-        $sess->set("context", undef);
+        delete $sess->{context};
     }
 }
 
 sub ensure_user {
     my ($self, $sess) = @_;
-    if (!$sess->get("user")) {
+    if (!$sess->{user}) {
         if ($self->{req}->path eq "/signup") {
             if (!try_to_add_new_user($self)) { 
                 return $self->respond("signup");
@@ -78,7 +78,7 @@ sub ensure_user {
     } elsif ($self->{req}->path eq "/signup") { # But we have signed up!
         $self->{req}->path("/package/list"); 
     }
-    $self->{user} = Kirin::DB::User->retrieve($sess->get("user")) 
+    $self->{user} = Kirin::DB::User->retrieve($sess->{user}) 
         or return $self->respond("403handler"); # Done gone screwed up
     return; # OK
 }
@@ -86,7 +86,7 @@ sub ensure_user {
 sub session {
     my $self = shift;
     $self->{req}->env->{"psgi.session"}  ||
-    $self->{req}->env->{"plack.session"};
+    $self->{req}->env->{"psgix.session"};
 }
 
 sub authenticate {
@@ -97,7 +97,7 @@ sub authenticate {
     my ($noun, $verb, @args) = split /\//,  $path;
     $noun =~ s/_(\w)/\U$1/g; my $class = $self->{model_prefix}."::".ucfirst($noun);
     my $sess = $self->session;
-    if ($self->{req}->path eq "/logout") { $sess->set("user","") }
+    if ($self->{req}->path eq "/logout") { delete $sess->{user} }
 
     if ($self->{req}->path eq "/forgot_password") {
         return $self->forgot_password;
@@ -108,10 +108,10 @@ sub authenticate {
         my $customer = Kirin::DB::Customer->retrieve($cid);
         warn "XXX ACL check here";
         # XXX ACL check here
-        $sess->set("customer", $customer->id);
+        $sess->{customer} = $customer->id;
         $self->{customer} = $customer;
     }
-    elsif (my $cust = $sess->get("customer")) { 
+    elsif (my $cust = $sess->{"customer"}) { 
         $self->{customer} = Kirin::DB::Customer->retrieve($cust);
     }
     return $redirect if $redirect;
@@ -156,8 +156,8 @@ sub try_to_login {
     my $real = Authen::Passphrase->from_crypt($user->password);
     if ($real->match($p)) {
         $self->message("Login successful");
-        $self->session->set("user" => $user->id);
-        $self->session->set("customer" => "");
+        $self->session->{user} = $user->id;
+        delete $self->session->{customer};
         # This corrects a subtle bug if we've been logged in as someone else
         return 1;
     }
@@ -204,8 +204,8 @@ sub try_to_add_new_user {
         method => "setup",
         parameters => $user->id
     });
-    $self->session->set("user" => $user->id);
-    $self->session->set("customer" => "");
+    $self->session->{"user"} = $user->id;
+    delete $self->session->{"customer"};
     return 1;
 }
 sub try_to_add_customer {
@@ -225,7 +225,7 @@ sub try_to_add_customer {
     $self->{user}->customer($customer);
     $self->{user}->update();
     my $sess = $self->session;
-    $sess->set("customer", $customer->id);
+    $sess->{customer} = $customer->id;
     $self->{customer} = $customer;
     return 1;
 }
