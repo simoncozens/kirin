@@ -31,7 +31,8 @@ sub _edit {
     my ($self, $mm, $thing, $validation) = @_;
     my $params = $mm->{req}->parameters();
     if ($params->{editing}) {
-        for ($thing->columns) { if (my $new = $params->{$_}) {
+        for ($thing->columns) { if (exists $params->{$_}) {
+            my $new = $params->{$_};
             if ($validation->{$_} and !$validation->{$_}->($new)) {
                 $mm->message("Invalid value given for $_, ignored");
             } else { 
